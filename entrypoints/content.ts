@@ -1,3 +1,4 @@
+import { SCRUB_AUDIO_BASE64 } from '@/utils/scrubAudioData';
 
 interface ExtensionSettings {
   enabled: boolean;
@@ -104,24 +105,69 @@ interface SporeParticle {
 }
 
 class ScrubAudioPlayer {
-  private audio: HTMLAudioElement | null = null;
-  private url: string;
+  private ctx: AudioContext | null = null;
+  private audioBuffer: AudioBuffer | null = null;
+  private currentSource: AudioBufferSourceNode | null = null;
+  private gainNode: GainNode | null = null;
   private stopTimeout: number | null = null;
+  private isDecoding = false;
+  private isPlaying = false;
 
-  constructor() {
-    this.url = browser.runtime.getURL('/scrub.mp3');
-  }
+  private async getAudioBuffer(): Promise<AudioBuffer | null> {
+    if (this.audioBuffer) return this.audioBuffer;
+    if (this.isDecoding) return null;
+    this.isDecoding = true;
 
-  play() {
     try {
-      if (!this.audio) {
-        this.audio = new Audio(this.url);
-        this.audio.volume = 0.65;
-        this.audio.loop = true;
+      if (!this.ctx && typeof AudioContext !== 'undefined') {
+        this.ctx = new AudioContext();
+      }
+      if (!this.ctx) return null;
+      if (this.ctx.state === 'suspended') {
+        await this.ctx.resume();
       }
 
-      if (this.audio.paused) {
-        this.audio.play().catch(() => {});
+      const binStr = atob(SCRUB_AUDIO_BASE64);
+      const len = binStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binStr.charCodeAt(i);
+      }
+
+      this.audioBuffer = await this.ctx.decodeAudioData(bytes.buffer);
+      return this.audioBuffer;
+    } catch {
+      return null;
+    } finally {
+      this.isDecoding = false;
+    }
+  }
+
+  async play() {
+    try {
+      if (!this.ctx && typeof AudioContext !== 'undefined') {
+        this.ctx = new AudioContext();
+      }
+      if (!this.ctx) return;
+      if (this.ctx.state === 'suspended') {
+        await this.ctx.resume();
+      }
+
+      const buffer = await this.getAudioBuffer();
+      if (!buffer || !this.ctx) return;
+
+      if (!this.isPlaying) {
+        this.currentSource = this.ctx.createBufferSource();
+        this.currentSource.buffer = buffer;
+        this.currentSource.loop = true;
+
+        this.gainNode = this.ctx.createGain();
+        this.gainNode.gain.setValueAtTime(0.65, this.ctx.currentTime);
+
+        this.currentSource.connect(this.gainNode);
+        this.gainNode.connect(this.ctx.destination);
+        this.currentSource.start();
+        this.isPlaying = true;
       }
 
       if (this.stopTimeout !== null) {
@@ -130,13 +176,10 @@ class ScrubAudioPlayer {
 
       // Automatically pause 280ms after cursor stops frantic scrubbing
       this.stopTimeout = window.setTimeout(() => {
-        if (this.audio && !this.audio.paused) {
-          this.audio.pause();
-        }
-        this.stopTimeout = null;
+        this.stop();
       }, 280);
     } catch {
-      // Audio playback fails gracefully
+      // Audio fails gracefully
     }
   }
 
@@ -145,9 +188,13 @@ class ScrubAudioPlayer {
       window.clearTimeout(this.stopTimeout);
       this.stopTimeout = null;
     }
-    if (this.audio) {
-      this.audio.pause();
-      this.audio.currentTime = 0;
+    if (this.currentSource && this.isPlaying) {
+      try {
+        this.currentSource.stop();
+        this.currentSource.disconnect();
+      } catch {}
+      this.currentSource = null;
+      this.isPlaying = false;
     }
   }
 }

@@ -55,8 +55,8 @@ The calibrated reduction of Rot Progress calculated directly from scrubbing stro
 _Avoid_: Alpha sampling, pixel readback, buffer scanning
 
 **Scrub Audio**:
-Packaged .mp3 audio playback triggered exclusively while performing high-velocity mouse scrubbing to provide tactile friction feedback.
-_Avoid_: Audio synthesis, ambient hum, continuous sound
+In-memory decoded audio asset played via Web Audio AudioBufferSourceNode, immune to host page Content Security Policy (CSP) media-src and connect-src restrictions across all tabs.
+_Avoid_: Extension URL audio, media-src audio, Audio element audio
 **Exponential Bloom**:
 The non-linear growth trajectory modeling real fungal propagation where initial spore germination creeps slowly and late-stage mycelium infests rapidly.
 _Avoid_: Linear spread, uniform growth, steady crawl
