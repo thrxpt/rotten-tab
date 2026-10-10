@@ -232,8 +232,8 @@ export default function App() {
         {/* Audio Toggle */}
         <div className="toggle-row">
           <div>
-            <div className="label-title">Fungal Audio Synthesis</div>
-            <div className="label-desc">Scrub squelch & ambient hum</div>
+            <div className="label-title">Scrubbing Audio</div>
+            <div className="label-desc">Play .mp3 audio while scrubbing</div>
           </div>
           <button
             type="button"

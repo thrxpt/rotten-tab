@@ -42,10 +42,9 @@ _Avoid_: Warning banner, sticky hazard bar, top alert
 The calibrated reduction of Rot Progress calculated directly from scrubbing stroke velocity and swept distance without querying GPU pixel buffers.
 _Avoid_: Alpha sampling, pixel readback, buffer scanning
 
-**Audio Synthesis**:
-Procedural real-time sound generation via the native Web Audio API that outputs dynamic fungal rustle and scrubbing friction without external audio files.
-_Avoid_: Sound effects, audio files, soundboard
-
+**Scrub Audio**:
+Packaged .mp3 audio playback triggered exclusively while performing high-velocity mouse scrubbing to provide tactile friction feedback.
+_Avoid_: Audio synthesis, ambient hum, continuous sound
 **Exponential Bloom**:
 The non-linear growth trajectory modeling real fungal propagation where initial spore germination creeps slowly and late-stage mycelium infests rapidly.
 _Avoid_: Linear spread, uniform growth, steady crawl

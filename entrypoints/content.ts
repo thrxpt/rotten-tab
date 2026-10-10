@@ -1,6 +1,3 @@
-interface ExtendedWindow extends Window {
-  webkitAudioContext?: typeof AudioContext;
-}
 
 interface ExtensionSettings {
   enabled: boolean;
@@ -25,96 +22,46 @@ interface SatelliteMold {
   seed: number;
 }
 
-class SoundEngine {
-  private ctx: AudioContext | null = null;
-  private ambientGain: GainNode | null = null;
-  private ambientOsc: OscillatorNode | null = null;
-  private isHumming = false;
+class ScrubAudioPlayer {
+  private pool: HTMLAudioElement[] = [];
+  private poolIndex = 0;
+  private lastPlayTime = 0;
+  private url: string;
 
-  private init() {
-    if (!this.ctx && typeof window !== 'undefined') {
-      const extWin: ExtendedWindow = window;
-      const AudioCtx = window.AudioContext || extWin.webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-      }
-    }
-    if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume().catch(() => {});
-    }
+  constructor() {
+    this.url = browser.runtime.getURL('/scrub.mp3');
   }
 
-  playScrubSound() {
-    this.init();
-    if (!this.ctx) return;
+  play() {
+    const now = Date.now();
+    // Debounce rapid strokes to avoid cacophony
+    if (now - this.lastPlayTime < 75) return;
+    this.lastPlayTime = now;
+
     try {
-      const duration = 0.07;
-      const bufferSize = Math.floor(this.ctx.sampleRate * duration);
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));
+      if (this.pool.length === 0) {
+        for (let i = 0; i < 4; i++) {
+          const audio = new Audio(this.url);
+          audio.volume = 0.6;
+          this.pool.push(audio);
+        }
       }
-      const source = this.ctx.createBufferSource();
-      source.buffer = buffer;
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(650 + Math.random() * 450, this.ctx.currentTime);
-      filter.Q.value = 3.0;
-
-      const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.14, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-
-      source.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.ctx.destination);
-      source.start();
-    } catch {
-      // Audio playback fails gracefully if blocked by browser policy
-    }
-  }
-
-  setBloomHum(active: boolean) {
-    if (!active) {
-      if (this.ambientGain && this.ctx && this.isHumming) {
-        this.ambientGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.15);
-        this.isHumming = false;
-      }
-      return;
-    }
-    this.init();
-    if (!this.ctx) return;
-    try {
-      if (!this.ambientOsc) {
-        this.ambientOsc = this.ctx.createOscillator();
-        this.ambientOsc.type = 'triangle';
-        this.ambientOsc.frequency.setValueAtTime(58, this.ctx.currentTime);
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(140, this.ctx.currentTime);
-
-        this.ambientGain = this.ctx.createGain();
-        this.ambientGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
-
-        this.ambientOsc.connect(filter);
-        filter.connect(this.ambientGain);
-        this.ambientGain.connect(this.ctx.destination);
-        this.ambientOsc.start();
-      }
-      if (this.ambientGain) {
-        this.ambientGain.gain.setTargetAtTime(0.035, this.ctx.currentTime, 0.25);
-        this.isHumming = true;
+      const audio = this.pool[this.poolIndex];
+      this.poolIndex = (this.poolIndex + 1) % this.pool.length;
+      if (audio) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
       }
     } catch {
-      // Audio fails gracefully
+      // Audio playback fails gracefully
     }
   }
 
-  stopAll() {
-    this.setBloomHum(false);
+  stop() {
+    for (const audio of this.pool) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
   }
 }
 
@@ -152,7 +99,7 @@ export default defineContentScript({
     let prevMouseY = 0;
     let prevMouseTime = 0;
 
-    const sound = new SoundEngine();
+    const scrubAudio = new ScrubAudioPlayer();
 
     // 1. Create Isolated Shadow DOM Container
     const hostEl = document.createElement('div');
@@ -568,7 +515,7 @@ export default defineContentScript({
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
-      sound.stopAll();
+      scrubAudio.stop();
       updateHud();
     }
 
@@ -604,7 +551,7 @@ export default defineContentScript({
       rotProgress = Math.max(0, rotProgress - decrementAmount);
 
       if (settings.soundEnabled) {
-        sound.playScrubSound();
+        scrubAudio.play();
       }
 
       if (rotProgress <= 0) {
@@ -641,7 +588,6 @@ export default defineContentScript({
       if (isActivelyRotting && !bloomTarget) {
         isActivelyRotting = false;
         rotStartTime = null;
-        sound.setBloomHum(false);
       }
     }
 
@@ -659,7 +605,6 @@ export default defineContentScript({
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         backgroundedAt = Date.now();
-        sound.stopAll();
       } else {
         if (backgroundedAt && settings.enabled) {
           const stagnantSeconds = (Date.now() - backgroundedAt) / 1000;
@@ -674,9 +619,6 @@ export default defineContentScript({
             bloomTarget = Math.min(100, rotProgress + Math.max(15, accrued));
             bloomStartTime = performance.now();
 
-            if (settings.soundEnabled) {
-              sound.setBloomHum(true);
-            }
           }
         }
         lastInteractionTime = Date.now();
@@ -704,7 +646,6 @@ export default defineContentScript({
 
           if (progressRatio >= 1) {
             bloomTarget = null;
-            sound.setBloomHum(false);
           }
         } else {
           // 2. Normal Inactivity Engine
@@ -714,9 +655,6 @@ export default defineContentScript({
             if (!isActivelyRotting) {
               isActivelyRotting = true;
               rotStartTime = now;
-              if (settings.soundEnabled) {
-                sound.setBloomHum(true);
-              }
             }
 
             if (rotStartTime) {
@@ -779,9 +717,6 @@ export default defineContentScript({
           bloomStartProgress = rotProgress;
           bloomTarget = 95;
           bloomStartTime = performance.now();
-          if (settings.soundEnabled) {
-            sound.setBloomHum(true);
-          }
           return Promise.resolve({ status: 'blooming', rotProgress });
         }
 
