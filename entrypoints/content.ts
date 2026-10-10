@@ -380,7 +380,7 @@ export default defineContentScript({
     particleCanvas.height = window.innerHeight;
     shadow.appendChild(particleCanvas);
 
-    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const particleCtx = particleCanvas.getContext('2d');
     const particles: SporeParticle[] = [];
     if (!ctx) return;
@@ -614,7 +614,38 @@ export default defineContentScript({
 
       const dist = Math.hypot(x - prevX, y - prevY);
       const steps = Math.max(1, Math.floor(dist / 10));
+      const radius = 42 + Math.min(25, speed * 8);
+      const sampleRadius = radius * 0.45;
 
+      // 1. Alpha Collision Detection: check if mold actually exists under the cursor
+      let maxAlpha = 0;
+      for (let i = 0; i <= steps; i += Math.max(1, Math.floor(steps / 3))) {
+        const t = i / steps;
+        const cx = prevX + (x - prevX) * t;
+        const cy = prevY + (y - prevY) * t;
+        const sampleOffsets = [0, -sampleRadius, sampleRadius];
+        for (const ox of sampleOffsets) {
+          const px = Math.floor(cx + ox);
+          if (px < 0 || px >= canvas.width) continue;
+          for (const oy of sampleOffsets) {
+            const py = Math.floor(cy + oy);
+            if (py < 0 || py >= canvas.height) continue;
+            const a = ctx.getImageData(px, py, 1, 1).data[3];
+            if (typeof a === 'number' && a > maxAlpha) {
+              maxAlpha = a;
+              if (maxAlpha > 200) break;
+            }
+          }
+          if (maxAlpha > 200) break;
+        }
+      }
+
+      // If no mold is under the cursor (empty area or already clean), do NOT decrement or play sound!
+      if (maxAlpha <= 15) {
+        return;
+      }
+
+      // 2. Mold hit! Apply gradual destination-out abrasion
       ctx.save();
       ctx.globalCompositeOperation = 'destination-out';
 
@@ -622,7 +653,6 @@ export default defineContentScript({
         const t = i / steps;
         const cx = prevX + (x - prevX) * t;
         const cy = prevY + (y - prevY) * t;
-        const radius = 42 + Math.min(25, speed * 8);
 
         // Gradual multi-pass abrasion: dynamic friction based on velocity
         const speedFactor = Math.min(1, Math.max(0, (speed - 1.6) / 2.4));
@@ -658,8 +688,9 @@ export default defineContentScript({
       }
       ctx.restore();
 
-      // Kinetic Decrement calibrated for smooth localized scrubbing
-      const decrementAmount = Math.max(0.04, Math.min(0.25, dist * 0.002));
+      // 3. Kinetic Decrement scaled by actual mold density hit
+      const densityFactor = maxAlpha / 255;
+      const decrementAmount = Math.max(0.04, Math.min(0.25, dist * 0.002)) * densityFactor;
       rotProgress = Math.max(0, rotProgress - decrementAmount);
       lastRenderedProgress = Math.min(lastRenderedProgress, rotProgress);
 
