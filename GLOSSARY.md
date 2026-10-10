@@ -19,6 +19,11 @@ _Avoid_: Background idle, tab sleep, single-tab idle
 **Mold Colony**:
 An autonomous fungal culture originating from randomized germination coordinates across the viewport surface that expands radially and merges with adjacent colonies.
 _Avoid_: Edge mold, border creeping, window frame fungus
+
+**Mold Species Ecosystem**:
+The diverse biological color spectrum representing five real-world mold taxa: Penicillium (turquoise seafoam), Aspergillus niger (charcoal soot black), Aspergillus flavus (mustard ochre), Neurospora (coral peach red), and Cladosporium (moss olive).
+_Avoid_: Random RGB colors, neon fungus, party mold
+
 **Hyphae Network**:
 The branching, thread-like mycelial filaments spreading inward from screen perimeters to form an interconnected fungal felt.
 _Avoid_: Mold lines, fungus rays, green branches

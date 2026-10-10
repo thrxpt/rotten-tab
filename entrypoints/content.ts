@@ -12,6 +12,85 @@ interface SurfaceColony {
   triggerProgress: number;
   maxRadius: number;
   seed: number;
+  paletteIndex: number;
+}
+
+interface MoldPalette {
+  halo: string;
+  fuzz: string;
+  core0: string;
+  core1: string;
+  core2: string;
+  whisker: string;
+  spores: [string, string, string];
+  droplet: string;
+}
+
+const MOLD_PALETTES: MoldPalette[] = [
+  // 0: Penicillium (Blue-Green / Turquoise citrus & bread mold)
+  {
+    halo: 'rgba(28, 55, 52, 0.35)',
+    fuzz: 'rgba(195, 230, 222, 0.65)',
+    core0: 'rgba(8, 22, 20, 0.96)',
+    core1: 'rgba(22, 62, 58, 0.90)',
+    core2: 'rgba(38, 92, 85, 0.65)',
+    whisker: 'rgba(200, 235, 225, 0.75)',
+    spores: ['rgba(8, 20, 18, 0.9)', 'rgba(28, 75, 68, 0.85)', 'rgba(210, 240, 232, 0.9)'],
+    droplet: 'rgba(185, 150, 40, 0.85)',
+  },
+  // 1: Aspergillus Niger (Charcoal Soot Black mold)
+  {
+    halo: 'rgba(35, 30, 28, 0.4)',
+    fuzz: 'rgba(210, 212, 210, 0.65)',
+    core0: 'rgba(8, 8, 8, 0.98)',
+    core1: 'rgba(20, 22, 20, 0.92)',
+    core2: 'rgba(38, 40, 36, 0.70)',
+    whisker: 'rgba(215, 218, 215, 0.75)',
+    spores: ['rgba(6, 6, 6, 0.95)', 'rgba(28, 30, 28, 0.85)', 'rgba(225, 228, 225, 0.9)'],
+    droplet: 'rgba(150, 95, 25, 0.85)',
+  },
+  // 2: Aspergillus Flavus (Mustard / Golden Ochre / Yellow mold)
+  {
+    halo: 'rgba(65, 50, 18, 0.4)',
+    fuzz: 'rgba(242, 235, 195, 0.65)',
+    core0: 'rgba(28, 22, 6, 0.96)',
+    core1: 'rgba(75, 62, 18, 0.90)',
+    core2: 'rgba(115, 95, 28, 0.65)',
+    whisker: 'rgba(245, 238, 200, 0.75)',
+    spores: ['rgba(25, 18, 6, 0.9)', 'rgba(88, 72, 18, 0.85)', 'rgba(248, 240, 205, 0.9)'],
+    droplet: 'rgba(210, 160, 30, 0.88)',
+  },
+  // 3: Neurospora (Salmon Pink / Coral Peach red bread mold)
+  {
+    halo: 'rgba(60, 25, 25, 0.38)',
+    fuzz: 'rgba(248, 218, 212, 0.65)',
+    core0: 'rgba(30, 10, 12, 0.96)',
+    core1: 'rgba(85, 36, 38, 0.88)',
+    core2: 'rgba(125, 58, 55, 0.65)',
+    whisker: 'rgba(250, 225, 220, 0.75)',
+    spores: ['rgba(28, 10, 12, 0.9)', 'rgba(98, 42, 44, 0.85)', 'rgba(252, 225, 220, 0.9)'],
+    droplet: 'rgba(190, 85, 45, 0.85)',
+  },
+  // 4: Cladosporium (Deep Olive / Forest green mildew)
+  {
+    halo: 'rgba(40, 48, 25, 0.38)',
+    fuzz: 'rgba(215, 230, 212, 0.65)',
+    core0: 'rgba(10, 16, 8, 0.96)',
+    core1: 'rgba(24, 42, 20, 0.90)',
+    core2: 'rgba(48, 75, 36, 0.65)',
+    whisker: 'rgba(220, 235, 218, 0.75)',
+    spores: ['rgba(8, 14, 6, 0.9)', 'rgba(36, 62, 28, 0.85)', 'rgba(225, 238, 222, 0.9)'],
+    droplet: 'rgba(165, 120, 30, 0.85)',
+  },
+];
+
+function getPalette(index: number): MoldPalette {
+  const idx = Math.abs(index) % MOLD_PALETTES.length;
+  const p = MOLD_PALETTES[idx];
+  if (p) return p;
+  const fallback = MOLD_PALETTES[0];
+  if (fallback) return fallback;
+  throw new Error('No mold palettes configured');
 }
 
 interface SporeParticle {
@@ -272,12 +351,14 @@ export default defineContentScript({
       for (let c = 0; c < cols; c++) {
         const nx = (c + 0.15 + Math.random() * 0.7) / cols;
         const ny = (r + 0.15 + Math.random() * 0.7) / rows;
+        const paletteIndex = (r * 3 + c * 2 + Math.floor(Math.random() * 2)) % MOLD_PALETTES.length;
         colonies.push({
           nx,
           ny,
           triggerProgress: 4 + Math.random() * 70,
           maxRadius: 52 + Math.random() * 68,
           seed: Math.random() * 100,
+          paletteIndex,
         });
       }
     }
@@ -330,32 +411,43 @@ export default defineContentScript({
       }
     }
 
-    // Helper: Draw soft, velvety, organic mold spore cluster with mycelium fuzz
-    function drawMoldPatch(cx: number, cy: number, radius: number, density: number = 1) {
+    // Helper: Draw soft, velvety, organic mold spore cluster with species-specific color palette
+    function drawMoldPatch(cx: number, cy: number, radius: number, paletteIndex: number = 0, density: number = 1) {
       if (!ctx || radius <= 2) return;
+      const p = getPalette(paletteIndex);
 
-      // 1. Soft mycelium fuzz halo
-      const gradFuzz = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius * 1.25);
-      gradFuzz.addColorStop(0, 'rgba(180, 198, 175, 0.45)');
-      gradFuzz.addColorStop(0.65, 'rgba(215, 230, 212, 0.55)');
-      gradFuzz.addColorStop(1, 'rgba(230, 242, 228, 0)');
-      ctx.fillStyle = gradFuzz;
+      // 1. Moisture stain halo
+      const gradHalo = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius * 1.35);
+      gradHalo.addColorStop(0, p.halo);
+      gradHalo.addColorStop(0.65, p.halo.replace(/[\d\.]+\)$/, '0.15)'));
+      gradHalo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradHalo;
       ctx.beginPath();
-      ctx.arc(cx, cy, radius * 1.25, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius * 1.35, 0, Math.PI * 2);
       ctx.fill();
 
-      // 2. Velvety olive-black necrotic core
+      // 2. Soft mycelium fuzz halo
+      const gradFuzz = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius * 1.2);
+      gradFuzz.addColorStop(0, p.fuzz.replace(/[\d\.]+\)$/, '0.35)'));
+      gradFuzz.addColorStop(0.65, p.fuzz);
+      gradFuzz.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = gradFuzz;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius * 1.2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Velvety core
       const gradCore = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.9);
-      gradCore.addColorStop(0, 'rgba(10, 16, 8, 0.95)');
-      gradCore.addColorStop(0.55, 'rgba(24, 38, 20, 0.9)');
-      gradCore.addColorStop(0.85, 'rgba(45, 68, 35, 0.65)');
-      gradCore.addColorStop(1, 'rgba(50, 72, 38, 0)');
+      gradCore.addColorStop(0, p.core0);
+      gradCore.addColorStop(0.55, p.core1);
+      gradCore.addColorStop(0.85, p.core2);
+      gradCore.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = gradCore;
       ctx.beginPath();
       ctx.arc(cx, cy, radius * 0.9, 0, Math.PI * 2);
       ctx.fill();
 
-      // 3. Stippled granular micro-spores (powdery velvet texture)
+      // 4. Stippled granular micro-spores
       const dotCount = Math.floor(radius * 14 * density);
       for (let i = 0; i < dotCount; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -368,19 +460,19 @@ export default defineContentScript({
         ctx.arc(px, py, r, 0, Math.PI * 2);
         const frac = dist / (radius * 1.3);
         if (frac < 0.45) {
-          ctx.fillStyle = Math.random() < 0.65 ? 'rgba(8, 12, 6, 0.9)' : 'rgba(22, 34, 18, 0.85)';
+          ctx.fillStyle = p.spores[0];
         } else if (frac < 0.82) {
-          ctx.fillStyle = Math.random() < 0.5 ? 'rgba(38, 60, 30, 0.8)' : 'rgba(68, 92, 56, 0.75)';
+          ctx.fillStyle = p.spores[1];
         } else {
-          ctx.fillStyle = 'rgba(225, 238, 222, 0.9)';
+          ctx.fillStyle = p.spores[2];
         }
         ctx.fill();
       }
 
-      // 4. Radiating feathery mycelium whiskers along the outer edge
+      // 5. Radiating feathery mycelium whiskers
       const whiskers = Math.floor(radius * 0.85);
       ctx.lineWidth = 0.65;
-      ctx.strokeStyle = 'rgba(220, 235, 218, 0.7)';
+      ctx.strokeStyle = p.whisker;
       for (let wIndex = 0; wIndex < whiskers; wIndex++) {
         const wAngle = Math.random() * Math.PI * 2;
         const inD = radius * (0.8 + Math.random() * 0.2);
@@ -391,14 +483,14 @@ export default defineContentScript({
         ctx.stroke();
       }
 
-      // 5. Guttation amber bead (3% chance on mature spots)
-      if (radius > 22 && Math.random() < 0.04) {
+      // 6. Amber guttation bead (3% chance on mature spots)
+      if (radius > 22 && Math.random() < 0.08) {
         ctx.beginPath();
-        ctx.arc(cx + 2, cy - 2, 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(165, 120, 30, 0.85)';
+        ctx.arc(cx + 2, cy - 2, 2.3, 0, Math.PI * 2);
+        ctx.fillStyle = p.droplet;
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(cx + 1.3, cy - 2.7, 0.6, 0, Math.PI * 2);
+        ctx.arc(cx + 1.3, cy - 2.7, 0.7, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
       }
@@ -424,7 +516,7 @@ export default defineContentScript({
             const cx = col.nx * w;
             const cy = col.ny * h;
             const currentR = Math.max(3, frac * col.maxRadius);
-            drawMoldPatch(cx, cy, currentR, 0.95);
+            drawMoldPatch(cx, cy, currentR, col.paletteIndex, 0.95);
           }
         }
       }
@@ -437,11 +529,9 @@ export default defineContentScript({
         ctx.beginPath();
         const sr = 0.6 + Math.random() * 1.8;
         ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-        const p = Math.random();
-        if (p < 0.45) ctx.fillStyle = 'rgba(16, 24, 12, 0.85)';
-        else if (p < 0.8) ctx.fillStyle = 'rgba(42, 64, 32, 0.8)';
-        else ctx.fillStyle = 'rgba(220, 235, 218, 0.9)';
-        ctx.fill();
+        const pal = getPalette(Math.floor(Math.random() * MOLD_PALETTES.length));
+        const sporeColor = pal.spores[Math.floor(Math.random() * 3)] || pal.spores[0];
+        ctx.fillStyle = sporeColor;
       }
     }
 
@@ -498,13 +588,15 @@ export default defineContentScript({
         if (particles.length < 120 && Math.random() < 0.75) {
           const pAngle = Math.random() * Math.PI * 2;
           const pSpeed = 1.2 + Math.random() * 3.4;
+          const pal = getPalette(Math.floor(Math.random() * MOLD_PALETTES.length));
+          const pColor = pal.spores[1].replace(/, [\d\.]+\)$/, ',');
           particles.push({
             x: cx + (Math.random() - 0.5) * 14,
             y: cy + (Math.random() - 0.5) * 14,
             vx: Math.cos(pAngle) * pSpeed + (x - prevX) * 0.12,
             vy: Math.sin(pAngle) * pSpeed + (y - prevY) * 0.12,
             radius: 0.8 + Math.random() * 1.8,
-            color: Math.random() < 0.55 ? 'rgba(215, 230, 212,' : 'rgba(45, 68, 38,',
+            color: pColor,
             life: 1.0,
           });
         }
