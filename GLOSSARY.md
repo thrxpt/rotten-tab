@@ -51,8 +51,8 @@ _Avoid_: Catch-up jump, instant snap, rot blast
 A transient in-page English toast indicator reporting active rot progression and spore accumulation without shifting host DOM layout.
 _Avoid_: Warning banner, sticky hazard bar, top alert
 **Kinetic Decrement**:
-The calibrated reduction of Rot Progress computed from scrubbing stroke distance and gated by pixel alpha collision detection under the cursor to prevent phantom progress loss over clean areas.
-_Avoid_: Unchecked decrement, blind progress reduction, full-screen readback
+The calibrated reduction of Rot Progress computed from scrubbing stroke distance and strictly reconciled with actual canvas colony coverage, guaranteeing Rot Progress reaches exactly 0% when all mold is cleaned.
+_Avoid_: Unchecked decrement, counter drift, phantom percentage residue
 
 **Scrub Audio**:
 Dual-engine audio playback combining an extension Offscreen Document (`AUDIO_PLAYBACK` reason, exempt from host page Autoplay Policy and CSP) with in-memory Web Audio fallback, guaranteeing tactile sound across all tabs.

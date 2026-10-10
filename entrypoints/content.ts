@@ -225,7 +225,7 @@ export default defineContentScript({
 
     let rotProgress = 0; // 0% to 100%
     let lastRenderedProgress = 0;
-
+    let peakRotProgress = 0;
     // Check if this tab is initially inactive or has stored activity timestamp
     let lastActiveTime = Date.now();
     try {
@@ -594,6 +594,7 @@ export default defineContentScript({
     function sanitizeTab() {
       rotProgress = 0;
       lastRenderedProgress = 0;
+      peakRotProgress = 0;
       lastActiveTime = Date.now();
       try {
         sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
@@ -688,10 +689,44 @@ export default defineContentScript({
       }
       ctx.restore();
 
-      // 3. Kinetic Decrement scaled by actual mold density hit
-      const densityFactor = Math.max(0.2, maxAlpha / 255);
-      const decrementAmount = Math.max(0.04, Math.min(0.25, dist * 0.002)) * densityFactor;
+      // 3. Kinetic Decrement scaled by actual mold density hit & swept distance
+      const densityFactor = Math.max(0.25, maxAlpha / 255);
+      const sweepRate = 0.25 + (dist / 60) * 0.35;
+      const decrementAmount = sweepRate * densityFactor;
       rotProgress = Math.max(0, rotProgress - decrementAmount);
+
+      // 4. Coverage Reconciliation: verify actual remaining active colonies on screen
+      let activeRemaining = 0;
+      let totalActive = 0;
+      const cw = canvas.width;
+      const ch = canvas.height;
+
+      for (const col of colonies) {
+        if (lastRenderedProgress >= col.triggerProgress) {
+          totalActive++;
+          const colX = Math.floor(col.nx * cw);
+          const colY = Math.floor(col.ny * ch);
+          if (colX >= 0 && colX < cw && colY >= 0 && colY < ch) {
+            const a = ctx.getImageData(colX, colY, 1, 1).data[3];
+            if (typeof a === 'number' && a > 1) {
+              activeRemaining++;
+            }
+          }
+        }
+      }
+
+      // If all active colonies on screen have been scrubbed clean, force rotProgress to 0%!
+      if (activeRemaining === 0) {
+        rotProgress = 0;
+        lastRenderedProgress = 0;
+        peakRotProgress = 0;
+        scrubAudio.stop();
+      } else if (totalActive > 0 && peakRotProgress > 0) {
+        const ratio = activeRemaining / totalActive;
+        const maxAllowed = Math.round(ratio * peakRotProgress);
+        rotProgress = Math.min(rotProgress, maxAllowed);
+      }
+
       lastRenderedProgress = Math.min(lastRenderedProgress, rotProgress);
 
       if (settings.soundEnabled) {
@@ -760,6 +795,7 @@ export default defineContentScript({
       if (target > rotProgress) {
         const fromP = lastRenderedProgress;
         rotProgress = target;
+        peakRotProgress = Math.max(peakRotProgress, rotProgress);
         renderMoldGrowth(fromP, rotProgress);
         lastRenderedProgress = rotProgress;
         updateHud();
@@ -870,6 +906,7 @@ export default defineContentScript({
       if ('type' in message) {
         if (message.type === 'ROT_NOW') {
           // Live Demo Action: immediately trigger 95% rot progress
+          peakRotProgress = 95;
           lastActiveTime = Date.now() - (settings.idleThreshold * 1000 + 90000);
           try {
             sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
