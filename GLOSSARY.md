@@ -36,8 +36,8 @@ The cursor interaction where high-velocity mouse movements across infested canva
 _Avoid_: Wiping, scratching, mouse cleaning, clicking to clean
 
 **Gradual Abrasion**:
-The multi-pass erosion mechanic where each scrubbing pass removes a fractional alpha layer (requiring 3–4 strokes in the same area) rather than instantly clearing to transparency.
-_Avoid_: Instant wipe, single-pass erase, cookie cutter
+The multi-pass erosion mechanic with dynamic finishing acceleration that thins thick mold gradually over 3–4 strokes and cleanly eliminates faint residual films down to true zero transparency (`alpha <= 1`).
+_Avoid_: Asymptotic film, premature clean cutoff, cookie cutter
 
 **Spore Debris**:
 Ephemeral micro-particles generated at the cursor contact point during scrubbing that briefly disperse and dissolve into air, providing physical visual feedback of mold removal.

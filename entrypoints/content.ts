@@ -640,8 +640,8 @@ export default defineContentScript({
         }
       }
 
-      // If no mold is under the cursor (empty area or already clean), do NOT decrement or play sound!
-      if (maxAlpha <= 15) {
+      // If no mold is under the cursor (empty area or completely clean down to alpha 0), do NOT decrement!
+      if (maxAlpha <= 1) {
         return;
       }
 
@@ -654,16 +654,16 @@ export default defineContentScript({
         const cx = prevX + (x - prevX) * t;
         const cy = prevY + (y - prevY) * t;
 
-        // Gradual multi-pass abrasion: dynamic friction based on velocity
+        // Gradual multi-pass abrasion with finishing boost for faint residual mold
         const speedFactor = Math.min(1, Math.max(0, (speed - 1.6) / 2.4));
-        const coreAlpha = 0.22 + speedFactor * 0.14; // 0.22 to 0.36
-        const edgeAlpha = 0.04 + speedFactor * 0.06; // 0.04 to 0.10
+        const finishingBoost = maxAlpha < 75 ? Math.pow(1 - maxAlpha / 75, 1.2) * 0.55 : 0;
+        const coreAlpha = Math.min(0.9, 0.22 + speedFactor * 0.14 + finishingBoost);
+        const edgeAlpha = Math.min(0.3, 0.04 + speedFactor * 0.06 + finishingBoost * 0.2);
 
         const grad = ctx.createRadialGradient(cx, cy, radius * 0.25, cx, cy, radius);
         grad.addColorStop(0, `rgba(0, 0, 0, ${coreAlpha})`);
         grad.addColorStop(0.65, `rgba(0, 0, 0, ${coreAlpha * 0.65})`);
         grad.addColorStop(1, `rgba(0, 0, 0, ${edgeAlpha})`);
-
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fillStyle = grad;
@@ -689,7 +689,7 @@ export default defineContentScript({
       ctx.restore();
 
       // 3. Kinetic Decrement scaled by actual mold density hit
-      const densityFactor = maxAlpha / 255;
+      const densityFactor = Math.max(0.2, maxAlpha / 255);
       const decrementAmount = Math.max(0.04, Math.min(0.25, dist * 0.002)) * densityFactor;
       rotProgress = Math.max(0, rotProgress - decrementAmount);
       lastRenderedProgress = Math.min(lastRenderedProgress, rotProgress);
