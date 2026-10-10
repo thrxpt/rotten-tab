@@ -552,19 +552,20 @@ export default defineContentScript({
       }
       ctx.restore();
 
-      // Kinetic Decrement
-      const decrementAmount = Math.max(0.8, Math.min(3.5, dist * 0.035));
+      // Kinetic Decrement calibrated for smooth localized scrubbing
+      const decrementAmount = Math.max(0.04, Math.min(0.25, dist * 0.002));
       rotProgress = Math.max(0, rotProgress - decrementAmount);
+      lastRenderedProgress = Math.min(lastRenderedProgress, rotProgress);
 
       if (settings.soundEnabled) {
         scrubAudio.play();
       }
 
       if (rotProgress <= 0) {
-        sanitizeTab();
-      } else {
-        updateHud();
+        rotProgress = 0;
+        scrubAudio.stop();
       }
+      updateHud();
     }
 
     // User Interaction Listeners
