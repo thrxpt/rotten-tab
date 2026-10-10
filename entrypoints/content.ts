@@ -144,6 +144,10 @@ class ScrubAudioPlayer {
   }
 
   async play() {
+    // 1. Notify extension offscreen document (exempt from host page autoplay policy & CSP)
+    browser.runtime.sendMessage({ type: 'SCRUB_AUDIO_PLAY' }).catch(() => {});
+
+    // 2. In-memory Web Audio local fallback
     try {
       if (!this.ctx && typeof AudioContext !== 'undefined') {
         this.ctx = new AudioContext();
@@ -184,6 +188,10 @@ class ScrubAudioPlayer {
   }
 
   stop() {
+    // 1. Notify extension offscreen document to pause
+    browser.runtime.sendMessage({ type: 'SCRUB_AUDIO_STOP' }).catch(() => {});
+
+    // 2. Stop local audio source
     if (this.stopTimeout !== null) {
       window.clearTimeout(this.stopTimeout);
       this.stopTimeout = null;

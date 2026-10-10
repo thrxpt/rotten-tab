@@ -7,7 +7,7 @@ export default defineConfig({
     name: 'Tab Rotting Simulator: Mold Edition',
     description: 'Procedural mold and fungal spores consume inactive tabs to punish tab hoarding.',
     version: '1.0.0',
-    permissions: ['storage', 'activeTab'],
+    permissions: ['storage', 'activeTab', 'offscreen'],
     web_accessible_resources: [
       {
         resources: ['scrub.mp3'],
