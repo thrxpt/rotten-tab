@@ -28,8 +28,16 @@ _Avoid_: Mold lines, fungus rays, green branches
 Autonomous circular mold cultures that germinate directly across inner page content ahead of the perimeter boundary.
 _Avoid_: Mold spots, floaters, random dots
 **Scrubbing**:
-The cursor interaction where high-velocity mouse movements across infested canvas coordinates erase mold and decrement rot progress.
+The cursor interaction where high-velocity mouse movements across infested canvas coordinates progressively abrade mold and decrement rot progress.
 _Avoid_: Wiping, scratching, mouse cleaning, clicking to clean
+
+**Gradual Abrasion**:
+The multi-pass erosion mechanic where each scrubbing pass removes a fractional alpha layer (requiring 3–4 strokes in the same area) rather than instantly clearing to transparency.
+_Avoid_: Instant wipe, single-pass erase, cookie cutter
+
+**Spore Debris**:
+Ephemeral micro-particles generated at the cursor contact point during scrubbing that briefly disperse and dissolve into air, providing physical visual feedback of mold removal.
+_Avoid_: Particle sparks, flying dirt, spray
 
 **Bloom Animation**:
 A rapid visual acceleration rendered upon refocusing a stagnant tab to transition rot progress smoothly into accumulated coverage.

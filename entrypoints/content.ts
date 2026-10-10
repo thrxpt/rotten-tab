@@ -22,6 +22,16 @@ interface SatelliteMold {
   seed: number;
 }
 
+interface SporeParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  color: string;
+  life: number;
+}
+
 class ScrubAudioPlayer {
   private audio: HTMLAudioElement | null = null;
   private url: string;
@@ -130,6 +140,16 @@ export default defineContentScript({
         filter: url(#mold-distortion);
         display: block;
       }
+      #mold-particles {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 2147483646;
+        display: block;
+      }
       #mold-hud {
         position: fixed;
         top: 18px;
@@ -223,7 +243,15 @@ export default defineContentScript({
     canvas.height = window.innerHeight;
     shadow.appendChild(canvas);
 
+    const particleCanvas = document.createElement('canvas');
+    particleCanvas.id = 'mold-particles';
+    particleCanvas.width = window.innerWidth;
+    particleCanvas.height = window.innerHeight;
+    shadow.appendChild(particleCanvas);
+
     const ctx = canvas.getContext('2d', { willReadFrequently: false });
+    const particleCtx = particleCanvas.getContext('2d');
+    const particles: SporeParticle[] = [];
     if (!ctx) return;
 
     // 5. Inject Center-Top HUD Notification
@@ -284,6 +312,8 @@ export default defineContentScript({
 
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      particleCanvas.width = window.innerWidth;
+      particleCanvas.height = window.innerHeight;
 
       if (tempCtx) {
         ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
@@ -521,10 +551,13 @@ export default defineContentScript({
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
+      particles.length = 0;
+      if (particleCtx) {
+        particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+      }
       scrubAudio.stop();
       updateHud();
     }
-
     // Frantic Scrubbing Execution
     function performScrub(x: number, y: number, prevX: number, prevY: number, speed: number) {
       if (!ctx || rotProgress <= 0) return;
@@ -541,14 +574,35 @@ export default defineContentScript({
         const cy = prevY + (y - prevY) * t;
         const radius = 42 + Math.min(25, speed * 8);
 
-        const grad = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
-        grad.addColorStop(0, 'rgba(0, 0, 0, 1)');
-        grad.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+        // Gradual multi-pass abrasion: dynamic friction based on velocity
+        const speedFactor = Math.min(1, Math.max(0, (speed - 1.6) / 2.4));
+        const coreAlpha = 0.22 + speedFactor * 0.14; // 0.22 to 0.36
+        const edgeAlpha = 0.04 + speedFactor * 0.06; // 0.04 to 0.10
+
+        const grad = ctx.createRadialGradient(cx, cy, radius * 0.25, cx, cy, radius);
+        grad.addColorStop(0, `rgba(0, 0, 0, ${coreAlpha})`);
+        grad.addColorStop(0.65, `rgba(0, 0, 0, ${coreAlpha * 0.65})`);
+        grad.addColorStop(1, `rgba(0, 0, 0, ${edgeAlpha})`);
 
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fillStyle = grad;
         ctx.fill();
+
+        // Spawn flying spore debris particles (capped at 120 max)
+        if (particles.length < 120 && Math.random() < 0.75) {
+          const pAngle = Math.random() * Math.PI * 2;
+          const pSpeed = 1.2 + Math.random() * 3.4;
+          particles.push({
+            x: cx + (Math.random() - 0.5) * 14,
+            y: cy + (Math.random() - 0.5) * 14,
+            vx: Math.cos(pAngle) * pSpeed + (x - prevX) * 0.12,
+            vy: Math.sin(pAngle) * pSpeed + (y - prevY) * 0.12,
+            radius: 0.8 + Math.random() * 1.8,
+            color: Math.random() < 0.55 ? 'rgba(215, 230, 212,' : 'rgba(45, 68, 38,',
+            life: 1.0,
+          });
+        }
       }
       ctx.restore();
 
@@ -680,6 +734,33 @@ export default defineContentScript({
               }
             }
           }
+        }
+      }
+
+      // Animate flying spore debris particles
+      if (particleCtx && particles.length > 0) {
+        particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          if (!p) continue;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.07;
+          p.vx *= 0.94;
+          p.vy *= 0.94;
+          p.life -= 0.045;
+
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+          } else {
+            particleCtx.beginPath();
+            particleCtx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
+            particleCtx.fillStyle = `${p.color} ${p.life * 0.85})`;
+            particleCtx.fill();
+          }
+        }
+        if (particles.length === 0) {
+          particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
         }
       }
 
