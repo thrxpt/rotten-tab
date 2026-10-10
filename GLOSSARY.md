@@ -13,8 +13,8 @@ The countdown tracking idle time while a tab is focused but receives no user inp
 _Avoid_: Idle watcher, sleep timer
 
 **Stagnation Period**:
-The duration a tab remains hidden or backgrounded, converted directly into rot progress when the tab is refocused.
-_Avoid_: Background idle, tab sleep
+The elapsed duration during which any tab remains backgrounded, unfocused, or hoarded, accumulating fungal rot continuously across all open tabs.
+_Avoid_: Background idle, tab sleep, single-tab idle
 
 **Mold Colony**:
 An autonomous fungal culture originating from randomized germination coordinates across the viewport surface that expands radially and merges with adjacent colonies.

@@ -91,17 +91,22 @@ export default defineContentScript({
 
     let rotProgress = 0; // 0% to 100%
     let lastRenderedProgress = 0;
-    let lastInteractionTime = Date.now();
-    let isActivelyRotting = false;
-    let rotStartTime: number | null = null;
-    let backgroundedAt: number | null = null;
 
-    // Fast-Forward Bloom Animation state
-    let bloomTarget: number | null = null;
-    let bloomStartProgress = 0;
-    let bloomStartTime = 0;
-    const BLOOM_DURATION_MS = 1400;
-
+    // Check if this tab is initially inactive or has stored activity timestamp
+    let lastActiveTime = Date.now();
+    try {
+      const stored = sessionStorage.getItem('tab_rot_last_active');
+      if (stored) {
+        lastActiveTime = Number(stored);
+      } else if (document.hidden || !document.hasFocus()) {
+        // Tab opened or loaded in background: immediately start as hoarded/inactive!
+        lastActiveTime = Date.now() - (settings.idleThreshold * 1000);
+      }
+    } catch {
+      if (document.hidden || !document.hasFocus()) {
+        lastActiveTime = Date.now() - (settings.idleThreshold * 1000);
+      }
+    }
     // Mouse velocity tracking for frantic scrubbing
     let prevMouseX = 0;
     let prevMouseY = 0;
@@ -444,10 +449,10 @@ export default defineContentScript({
     function sanitizeTab() {
       rotProgress = 0;
       lastRenderedProgress = 0;
-      bloomTarget = null;
-      isActivelyRotting = false;
-      rotStartTime = null;
-      lastInteractionTime = Date.now();
+      lastActiveTime = Date.now();
+      try {
+        sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
+      } catch {}
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
@@ -543,13 +548,10 @@ export default defineContentScript({
         prevMouseTime = now;
       }
 
-      lastInteractionTime = now;
-
-      // Halt active exponential growth on normal user interaction
-      if (isActivelyRotting && !bloomTarget) {
-        isActivelyRotting = false;
-        rotStartTime = null;
-      }
+      lastActiveTime = now;
+      try {
+        sessionStorage.setItem('tab_rot_last_active', String(now));
+      } catch {}
     }
 
     ['mousemove', 'keydown', 'scroll', 'click'].forEach((event) => {
@@ -562,79 +564,66 @@ export default defineContentScript({
       );
     });
 
-    // Background Stagnation Tracking via VisibilityChange
+    // Calculation: determine accrued rot for any inactive duration
+    function calculateAccruedRot(inactiveMs: number): number {
+      const inactiveSeconds = inactiveMs / 1000;
+      if (inactiveSeconds < settings.idleThreshold) return 0;
+      const activeRotSeconds = inactiveSeconds - settings.idleThreshold;
+      const baseDuration = 60 / settings.growthSpeed;
+      const normalizedTime = Math.min(1, activeRotSeconds / baseDuration);
+      return Math.min(100, Math.pow(normalizedTime, 1.4) * 100);
+    }
+
+    // Apply accrued rot immediately onto the canvas
+    function applyAccruedRot() {
+      if (!settings.enabled) return;
+      const now = Date.now();
+      const target = calculateAccruedRot(now - lastActiveTime);
+      if (target > rotProgress) {
+        const fromP = lastRenderedProgress;
+        rotProgress = target;
+        renderMoldGrowth(fromP, rotProgress);
+        lastRenderedProgress = rotProgress;
+        updateHud();
+      }
+    }
+
+    // Immediately check and apply rot on script start (e.g. background tab or restored session)
+    applyAccruedRot();
+
+    // 1-second background interval: continues accumulating & rendering rot in background tabs!
+    window.setInterval(() => {
+      if (!settings.enabled) return;
+      const isInactive = document.hidden || !document.hasFocus();
+      if (isInactive) {
+        applyAccruedRot();
+      }
+    }, 1000);
+
+    // Multi-tab lifecycle listeners
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
-        backgroundedAt = Date.now();
         scrubAudio.stop();
       } else {
-        if (backgroundedAt && settings.enabled) {
-          const stagnantSeconds = (Date.now() - backgroundedAt) / 1000;
-          backgroundedAt = null;
-
-          if (stagnantSeconds >= settings.idleThreshold) {
-            // Tab was hoarded in background! Calculate accrued rot progress
-            const effectiveStagnant = stagnantSeconds - settings.idleThreshold;
-            const accrued = Math.min(95, Math.pow(effectiveStagnant / (60 / settings.growthSpeed), 1.5) * 60);
-
-            bloomStartProgress = rotProgress;
-            bloomTarget = Math.min(100, rotProgress + Math.max(15, accrued));
-            bloomStartTime = performance.now();
-
-          }
-        }
-        lastInteractionTime = Date.now();
+        applyAccruedRot();
       }
     });
 
-    // Main Simulation Loop via requestAnimationFrame
-    function simulationLoop(frameTimestamp: number) {
+    window.addEventListener('focus', () => {
+      applyAccruedRot();
+    });
+
+    window.addEventListener('blur', () => {
+      scrubAudio.stop();
+      try {
+        sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
+      } catch {}
+    });
+
+    // Main Simulation Loop via requestAnimationFrame (runs smoothly when tab is visible)
+    function simulationLoop(_frameTimestamp: number) {
       if (settings.enabled) {
-        const now = Date.now();
-
-        // 1. Handle Fast-Forward Bloom Animation if active
-        if (bloomTarget !== null) {
-          const elapsed = frameTimestamp - bloomStartTime;
-          const progressRatio = Math.min(1, elapsed / BLOOM_DURATION_MS);
-          const easeRatio = 1 - Math.pow(1 - progressRatio, 3); // Cubic ease-out
-
-          rotProgress = bloomStartProgress + (bloomTarget - bloomStartProgress) * easeRatio;
-
-          if (rotProgress > lastRenderedProgress) {
-            renderMoldGrowth(lastRenderedProgress, rotProgress);
-            lastRenderedProgress = rotProgress;
-          }
-          updateHud();
-
-          if (progressRatio >= 1) {
-            bloomTarget = null;
-          }
-        } else {
-          // 2. Normal Inactivity Engine
-          const idleSeconds = (now - lastInteractionTime) / 1000;
-
-          if (idleSeconds >= settings.idleThreshold && rotProgress < 100) {
-            if (!isActivelyRotting) {
-              isActivelyRotting = true;
-              rotStartTime = now;
-            }
-
-            if (rotStartTime) {
-              const activeRotSeconds = (now - rotStartTime) / 1000;
-              // Exponential Spore Bloom Curve (reaches 100% in 60s at 1x speed)
-              const baseDuration = 60 / settings.growthSpeed;
-              const normalizedTime = Math.min(1, activeRotSeconds / baseDuration);
-              const targetProgress = Math.min(100, Math.pow(normalizedTime, 1.8) * 100);
-
-              if (targetProgress > rotProgress) {
-                rotProgress = targetProgress;
-                renderMoldGrowth(lastRenderedProgress, rotProgress);
-                lastRenderedProgress = rotProgress;
-                updateHud();
-              }
-            }
-          }
-        }
+        applyAccruedRot();
       }
 
       // Animate flying spore debris particles
@@ -702,10 +691,12 @@ export default defineContentScript({
       if (!message || typeof message !== 'object') return;
       if ('type' in message) {
         if (message.type === 'ROT_NOW') {
-          // Live Demo Action: immediately trigger fast-forward bloom to 90-100%
-          bloomStartProgress = rotProgress;
-          bloomTarget = 95;
-          bloomStartTime = performance.now();
+          // Live Demo Action: immediately trigger 95% rot progress
+          lastActiveTime = Date.now() - (settings.idleThreshold * 1000 + 90000);
+          try {
+            sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
+          } catch {}
+          applyAccruedRot();
           return Promise.resolve({ status: 'blooming', rotProgress });
         }
 
@@ -715,7 +706,7 @@ export default defineContentScript({
         }
 
         if (message.type === 'GET_STATUS') {
-          return Promise.resolve({ rotProgress, isActivelyRotting, settings });
+          return Promise.resolve({ rotProgress, isActivelyRotting: rotProgress > 0, settings });
         }
       }
     });
