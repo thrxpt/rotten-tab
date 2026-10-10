@@ -689,54 +689,64 @@ export default defineContentScript({
       }
       ctx.restore();
 
-      // 3. Kinetic Decrement scaled by actual mold density hit & swept distance
-      const densityFactor = Math.max(0.25, maxAlpha / 255);
-      const sweepRate = 0.25 + (dist / 60) * 0.35;
+      // 3. Calibrated Kinetic Decrement (smooth steady reduction matching scrub motion)
+      const densityFactor = Math.max(0.2, maxAlpha / 255);
+      const sweepRate = 0.08 + Math.min(0.2, (dist / 80) * 0.12);
       const decrementAmount = sweepRate * densityFactor;
       rotProgress = Math.max(0, rotProgress - decrementAmount);
 
-      // 4. Coverage Reconciliation: verify actual remaining active colonies on screen
-      let activeRemaining = 0;
-      let totalActive = 0;
-      const cw = canvas.width;
-      const ch = canvas.height;
+      // 4. Anti-Premature Zero Guard: never drop below 1% if mold remains on canvas!
+      if (rotProgress <= 3) {
+        let hasRemainingMold = false;
+        const cw = canvas.width;
+        const ch = canvas.height;
 
-      for (const col of colonies) {
-        if (lastRenderedProgress >= col.triggerProgress) {
-          totalActive++;
+        // Check colony centers
+        for (const col of colonies) {
           const colX = Math.floor(col.nx * cw);
           const colY = Math.floor(col.ny * ch);
           if (colX >= 0 && colX < cw && colY >= 0 && colY < ch) {
             const a = ctx.getImageData(colX, colY, 1, 1).data[3];
             if (typeof a === 'number' && a > 1) {
-              activeRemaining++;
+              hasRemainingMold = true;
+              break;
             }
           }
         }
-      }
 
-      // If all active colonies on screen have been scrubbed clean, force rotProgress to 0%!
-      if (activeRemaining === 0) {
-        rotProgress = 0;
-        lastRenderedProgress = 0;
-        peakRotProgress = 0;
-        scrubAudio.stop();
-      } else if (totalActive > 0 && peakRotProgress > 0) {
-        const ratio = activeRemaining / totalActive;
-        const maxAllowed = Math.round(ratio * peakRotProgress);
-        rotProgress = Math.min(rotProgress, maxAllowed);
-      }
+        // Check 24-point screen grid if colony centers didn't catch stray mold
+        if (!hasRemainingMold) {
+          const gridCols = 6;
+          const gridRows = 4;
+          for (let r = 0; r < gridRows && !hasRemainingMold; r++) {
+            const gy = Math.floor((r + 0.5) * (ch / gridRows));
+            for (let c = 0; c < gridCols; c++) {
+              const gx = Math.floor((c + 0.5) * (cw / gridCols));
+              const a = ctx.getImageData(gx, gy, 1, 1).data[3];
+              if (typeof a === 'number' && a > 1) {
+                hasRemainingMold = true;
+                break;
+              }
+            }
+          }
+        }
 
-      lastRenderedProgress = Math.min(lastRenderedProgress, rotProgress);
+        if (hasRemainingMold) {
+          // Mold is STILL visible on screen! Keep at least 1% (never drop to 0% prematurely!)
+          rotProgress = Math.max(1, rotProgress);
+        } else {
+          // Zero mold left anywhere on screen!
+          rotProgress = 0;
+          lastRenderedProgress = 0;
+          peakRotProgress = 0;
+          scrubAudio.stop();
+        }
+      }
 
       if (settings.soundEnabled) {
         scrubAudio.play();
       }
 
-      if (rotProgress <= 0) {
-        rotProgress = 0;
-        scrubAudio.stop();
-      }
       updateHud();
     }
 
