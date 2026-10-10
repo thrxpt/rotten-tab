@@ -6,15 +6,7 @@ interface ExtensionSettings {
   soundEnabled: boolean;
 }
 
-interface MoldCluster {
-  edge: 'top' | 'bottom' | 'left' | 'right';
-  u: number;
-  reachFactor: number;
-  baseRadius: number;
-  seed: number;
-}
-
-interface SatelliteMold {
+interface SurfaceColony {
   nx: number;
   ny: number;
   triggerProgress: number;
@@ -267,33 +259,22 @@ export default defineContentScript({
     const hudText = hud.querySelector('.hud-text');
     const hudHint = hud.querySelector('.hud-hint');
 
-    // 6. Generate Procedural Mold Clusters & Satellite Spores
-    const clusters: MoldCluster[] = [];
-    const CLUSTERS_PER_EDGE = 24;
-    const edges: Array<'top' | 'bottom' | 'left' | 'right'> = ['top', 'bottom', 'left', 'right'];
-
-    for (const edge of edges) {
-      for (let i = 0; i < CLUSTERS_PER_EDGE; i++) {
-        clusters.push({
-          edge,
-          u: (i + 0.15 + Math.random() * 0.7) / CLUSTERS_PER_EDGE,
-          reachFactor: 0.35 + Math.random() * 0.65,
-          baseRadius: 24 + Math.random() * 36,
+    // 6. Generate Randomized Spore Colonies across the Viewport Surface
+    const colonies: SurfaceColony[] = [];
+    const cols = 8;
+    const rows = 7;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const nx = (c + 0.15 + Math.random() * 0.7) / cols;
+        const ny = (r + 0.15 + Math.random() * 0.7) / rows;
+        colonies.push({
+          nx,
+          ny,
+          triggerProgress: 4 + Math.random() * 70,
+          maxRadius: 52 + Math.random() * 68,
           seed: Math.random() * 100,
         });
       }
-    }
-
-    const satellites: SatelliteMold[] = [];
-    const SATELLITE_COUNT = 32;
-    for (let i = 0; i < SATELLITE_COUNT; i++) {
-      satellites.push({
-        nx: 0.08 + Math.random() * 0.84,
-        ny: 0.08 + Math.random() * 0.84,
-        triggerProgress: 10 + Math.random() * 70,
-        maxRadius: 26 + Math.random() * 46,
-        seed: Math.random() * 100,
-      });
     }
     // Canvas Resize Preservation Buffer
     window.addEventListener('resize', () => {
@@ -418,125 +399,44 @@ export default defineContentScript({
       }
     }
 
-    // Procedural Biological Mold Painter
+    // Procedural Biological Mold Painter (Randomized Surface Germination)
     function renderMoldGrowth(fromProgress: number, toProgress: number) {
       if (!ctx || toProgress <= fromProgress) return;
 
       const w = canvas.width;
       const h = canvas.height;
-      const minDim = Math.min(w, h);
-      const maxReach = (toProgress / 100) * (minDim * 0.38);
 
-      // 1. Water Stain Seepage Gradient along Viewport Edges
-      const edges: Array<'top' | 'bottom' | 'left' | 'right'> = ['top', 'bottom', 'left', 'right'];
-      const reach = maxReach * 1.35;
-      if (reach > 6) {
-        for (const edge of edges) {
-          const grad = ctx.createLinearGradient(
-            edge === 'right' ? w - reach : 0,
-            edge === 'bottom' ? h - reach : 0,
-            edge === 'left' ? reach : (edge === 'right' ? w : 0),
-            edge === 'top' ? reach : (edge === 'bottom' ? h : 0)
-          );
-          grad.addColorStop(0, edge === 'left' || edge === 'top' ? 'rgba(50, 42, 22, 0.28)' : 'rgba(50, 42, 22, 0)');
-          grad.addColorStop(1, edge === 'left' || edge === 'top' ? 'rgba(50, 42, 22, 0)' : 'rgba(50, 42, 22, 0.28)');
-          ctx.fillStyle = grad;
-
-          if (edge === 'top') ctx.fillRect(0, 0, w, reach);
-          else if (edge === 'bottom') ctx.fillRect(0, h - reach, w, reach);
-          else if (edge === 'left') ctx.fillRect(0, 0, reach, h);
-          else if (edge === 'right') ctx.fillRect(w - reach, 0, reach, h);
-        }
-      }
-
-      // 2. Continuous Necrotic Base Bed along Borders
-      const coreReach = maxReach * 0.75;
-      if (coreReach > 6) {
-        for (const edge of edges) {
-          const grad = ctx.createLinearGradient(
-            edge === 'right' ? w - coreReach : 0,
-            edge === 'bottom' ? h - coreReach : 0,
-            edge === 'left' ? coreReach : (edge === 'right' ? w : 0),
-            edge === 'top' ? coreReach : (edge === 'bottom' ? h : 0)
-          );
-          grad.addColorStop(0, edge === 'left' || edge === 'top' ? 'rgba(12, 18, 10, 0.85)' : 'rgba(12, 18, 10, 0)');
-          grad.addColorStop(0.7, edge === 'left' || edge === 'top' ? 'rgba(22, 34, 18, 0.65)' : 'rgba(22, 34, 18, 0.35)');
-          grad.addColorStop(1, edge === 'left' || edge === 'top' ? 'rgba(22, 34, 18, 0)' : 'rgba(12, 18, 10, 0.85)');
-          ctx.fillStyle = grad;
-
-          if (edge === 'top') ctx.fillRect(0, 0, w, coreReach);
-          else if (edge === 'bottom') ctx.fillRect(0, h - coreReach, w, coreReach);
-          else if (edge === 'left') ctx.fillRect(0, 0, coreReach, h);
-          else if (edge === 'right') ctx.fillRect(w - coreReach, 0, coreReach, h);
-        }
-      }
-
-      // 3. Dense Overlapping Mold Clusters along Frontiers
-      for (const cluster of clusters) {
-        const clusterReach = maxReach * cluster.reachFactor;
-        const currentReach = (toProgress / 100) * clusterReach;
-        const prevReach = (fromProgress / 100) * clusterReach;
-        if (currentReach <= prevReach) continue;
-
-        let px = 0;
-        let py = 0;
-        switch (cluster.edge) {
-          case 'top':
-            px = cluster.u * w;
-            py = currentReach * 0.7;
-            break;
-          case 'bottom':
-            px = cluster.u * w;
-            py = h - currentReach * 0.7;
-            break;
-          case 'left':
-            px = currentReach * 0.7;
-            py = cluster.u * h;
-            break;
-          case 'right':
-            px = w - currentReach * 0.7;
-            py = cluster.u * h;
-            break;
-        }
-
-        const patchRadius = cluster.baseRadius * (0.6 + 0.4 * (toProgress / 100));
-        drawMoldPatch(px, py, patchRadius, 0.95);
-      }
-
-      // 4. Expanding Concentric Satellite Mold Colonies
-      for (const sat of satellites) {
-        if (toProgress >= sat.triggerProgress) {
-          const denom = Math.max(1, 100 - sat.triggerProgress + 10);
-          const frac = Math.min(1, (toProgress - sat.triggerProgress) / denom);
-          const prevFrac = fromProgress >= sat.triggerProgress
-            ? Math.min(1, (fromProgress - sat.triggerProgress) / denom)
+      // 1. Expand Active Randomized Colonies radially from their spawn coordinates
+      for (const col of colonies) {
+        if (toProgress >= col.triggerProgress) {
+          const denom = Math.max(1, 100 - col.triggerProgress + 15);
+          const frac = Math.min(1, (toProgress - col.triggerProgress) / denom);
+          const prevFrac = fromProgress >= col.triggerProgress
+            ? Math.min(1, (fromProgress - col.triggerProgress) / denom)
             : 0;
 
           if (frac > prevFrac) {
-            const cx = sat.nx * w;
-            const cy = sat.ny * h;
-            const currentR = frac * sat.maxRadius;
-            drawMoldPatch(cx, cy, currentR, 1.25);
+            const cx = col.nx * w;
+            const cy = col.ny * h;
+            const currentR = Math.max(3, frac * col.maxRadius);
+            drawMoldPatch(cx, cy, currentR, 0.95);
           }
         }
       }
 
-      // 5. Airborne Stray Spore Dust (subtle speckles drifting onto text)
-      const dustCount = Math.floor((toProgress - fromProgress) * 4);
+      // 2. Airborne Stray Mildew Dust (subtle spore flecks drifting onto text)
+      const dustCount = Math.floor((toProgress - fromProgress) * 5);
       for (let s = 0; s < dustCount; s++) {
         const sx = Math.random() * w;
         const sy = Math.random() * h;
-        const distFromEdge = Math.min(sx, w - sx, sy, h - sy);
-        if (distFromEdge < maxReach * 1.8 || Math.random() < 0.15) {
-          ctx.beginPath();
-          const sr = 0.6 + Math.random() * 1.8;
-          ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-          const p = Math.random();
-          if (p < 0.45) ctx.fillStyle = 'rgba(16, 24, 12, 0.85)';
-          else if (p < 0.8) ctx.fillStyle = 'rgba(42, 64, 32, 0.8)';
-          else ctx.fillStyle = 'rgba(220, 235, 218, 0.9)';
-          ctx.fill();
-        }
+        ctx.beginPath();
+        const sr = 0.6 + Math.random() * 1.8;
+        ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+        const p = Math.random();
+        if (p < 0.45) ctx.fillStyle = 'rgba(16, 24, 12, 0.85)';
+        else if (p < 0.8) ctx.fillStyle = 'rgba(42, 64, 32, 0.8)';
+        else ctx.fillStyle = 'rgba(220, 235, 218, 0.9)';
+        ctx.fill();
       }
     }
 

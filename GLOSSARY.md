@@ -17,9 +17,8 @@ The duration a tab remains hidden or backgrounded, converted directly into rot p
 _Avoid_: Background idle, tab sleep
 
 **Mold Colony**:
-An autonomous fungal cluster originating along the viewport periphery that expands inward via mycelial bodies and spore granules.
-_Avoid_: Mold blob, fungus spot, patch
-
+An autonomous fungal culture originating from randomized germination coordinates across the viewport surface that expands radially and merges with adjacent colonies.
+_Avoid_: Edge mold, border creeping, window frame fungus
 **Hyphae Network**:
 The branching, thread-like mycelial filaments spreading inward from screen perimeters to form an interconnected fungal felt.
 _Avoid_: Mold lines, fungus rays, green branches
