@@ -23,44 +23,50 @@ interface SatelliteMold {
 }
 
 class ScrubAudioPlayer {
-  private pool: HTMLAudioElement[] = [];
-  private poolIndex = 0;
-  private lastPlayTime = 0;
+  private audio: HTMLAudioElement | null = null;
   private url: string;
+  private stopTimeout: number | null = null;
 
   constructor() {
     this.url = browser.runtime.getURL('/scrub.mp3');
   }
 
   play() {
-    const now = Date.now();
-    // Debounce rapid strokes to avoid cacophony
-    if (now - this.lastPlayTime < 75) return;
-    this.lastPlayTime = now;
-
     try {
-      if (this.pool.length === 0) {
-        for (let i = 0; i < 4; i++) {
-          const audio = new Audio(this.url);
-          audio.volume = 0.6;
-          this.pool.push(audio);
+      if (!this.audio) {
+        this.audio = new Audio(this.url);
+        this.audio.volume = 0.65;
+        this.audio.loop = true;
+      }
+
+      if (this.audio.paused) {
+        this.audio.play().catch(() => {});
+      }
+
+      if (this.stopTimeout !== null) {
+        window.clearTimeout(this.stopTimeout);
+      }
+
+      // Automatically pause 280ms after cursor stops frantic scrubbing
+      this.stopTimeout = window.setTimeout(() => {
+        if (this.audio && !this.audio.paused) {
+          this.audio.pause();
         }
-      }
-      const audio = this.pool[this.poolIndex];
-      this.poolIndex = (this.poolIndex + 1) % this.pool.length;
-      if (audio) {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      }
+        this.stopTimeout = null;
+      }, 280);
     } catch {
       // Audio playback fails gracefully
     }
   }
 
   stop() {
-    for (const audio of this.pool) {
-      audio.pause();
-      audio.currentTime = 0;
+    if (this.stopTimeout !== null) {
+      window.clearTimeout(this.stopTimeout);
+      this.stopTimeout = null;
+    }
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.currentTime = 0;
     }
   }
 }
@@ -605,6 +611,7 @@ export default defineContentScript({
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         backgroundedAt = Date.now();
+        scrubAudio.stop();
       } else {
         if (backgroundedAt && settings.enabled) {
           const stagnantSeconds = (Date.now() - backgroundedAt) / 1000;
