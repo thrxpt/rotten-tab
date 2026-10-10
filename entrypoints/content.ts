@@ -689,58 +689,51 @@ export default defineContentScript({
       }
       ctx.restore();
 
-      // 3. Calibrated Kinetic Decrement (smooth steady reduction matching scrub motion)
-      const densityFactor = Math.max(0.2, maxAlpha / 255);
-      const sweepRate = 0.08 + Math.min(0.2, (dist / 80) * 0.12);
-      const decrementAmount = sweepRate * densityFactor;
-      rotProgress = Math.max(0, rotProgress - decrementAmount);
+      // 3. Direct Colony Coverage Reconciliation: measure actual remaining mold across all colonies
+      let activeLeft = 0;
+      let totalGerminated = 0;
+      const cw = canvas.width;
+      const ch = canvas.height;
 
-      // 4. Anti-Premature Zero Guard: never drop below 1% if mold remains on canvas!
-      if (rotProgress <= 3) {
-        let hasRemainingMold = false;
-        const cw = canvas.width;
-        const ch = canvas.height;
-
-        // Check colony centers
-        for (const col of colonies) {
-          const colX = Math.floor(col.nx * cw);
-          const colY = Math.floor(col.ny * ch);
-          if (colX >= 0 && colX < cw && colY >= 0 && colY < ch) {
-            const a = ctx.getImageData(colX, colY, 1, 1).data[3];
-            if (typeof a === 'number' && a > 1) {
-              hasRemainingMold = true;
-              break;
-            }
-          }
-        }
-
-        // Check 24-point screen grid if colony centers didn't catch stray mold
-        if (!hasRemainingMold) {
-          const gridCols = 6;
-          const gridRows = 4;
-          for (let r = 0; r < gridRows && !hasRemainingMold; r++) {
-            const gy = Math.floor((r + 0.5) * (ch / gridRows));
-            for (let c = 0; c < gridCols; c++) {
-              const gx = Math.floor((c + 0.5) * (cw / gridCols));
-              const a = ctx.getImageData(gx, gy, 1, 1).data[3];
+      for (const col of colonies) {
+        if (col.triggerProgress <= peakRotProgress) {
+          totalGerminated++;
+          const cx = Math.floor(col.nx * cw);
+          const cy = Math.floor(col.ny * ch);
+          const r = Math.max(12, col.maxRadius * 0.45);
+          const pts: Array<[number, number]> = [
+            [cx, cy],
+            [cx - r, cy],
+            [cx + r, cy],
+            [cx, cy - r],
+            [cx, cy + r],
+          ];
+          let colHasMold = false;
+          for (const [px, py] of pts) {
+            if (px >= 0 && px < cw && py >= 0 && py < ch) {
+              const a = ctx.getImageData(px, py, 1, 1).data[3];
               if (typeof a === 'number' && a > 1) {
-                hasRemainingMold = true;
+                colHasMold = true;
                 break;
               }
             }
           }
+          if (colHasMold) {
+            activeLeft++;
+          }
         }
+      }
 
-        if (hasRemainingMold) {
-          // Mold is STILL visible on screen! Keep at least 1% (never drop to 0% prematurely!)
-          rotProgress = Math.max(1, rotProgress);
-        } else {
-          // Zero mold left anywhere on screen!
-          rotProgress = 0;
-          lastRenderedProgress = 0;
-          peakRotProgress = 0;
-          scrubAudio.stop();
-        }
+      if (activeLeft === 0) {
+        // Every single mold colony on the entire screen is completely cleaned!
+        rotProgress = 0;
+        lastRenderedProgress = 0;
+        peakRotProgress = 0;
+        scrubAudio.stop();
+      } else if (totalGerminated > 0) {
+        // True proportion: when 90% of colonies are gone, rotProgress drops by 90%!
+        const ratio = activeLeft / totalGerminated;
+        rotProgress = Math.max(1, Math.round(ratio * peakRotProgress));
       }
 
       if (settings.soundEnabled) {

@@ -5,8 +5,8 @@ Simulates procedural fungal rot and spore growth on neglected browser tabs to vi
 ## Language
 
 **Rot Progress**:
-The percentage (0% to 100%) quantifying viewport coverage and mycelial density on an inactive tab.
-_Avoid_: Mold level, corruption percentage, decay score
+The percentage (0% to 100%) dynamically reconciled with real-time on-canvas colony coverage, guaranteeing visual mold density and HUD percentage remain perfectly synchronized throughout growth and scrubbing.
+_Avoid_: Guess counter, synthetic decrement, unsynchronized percentage
 
 **Inactivity Timer**:
 The countdown tracking idle time while a tab is focused but receives no user input (`mousemove`, `keydown`, `scroll`, `click`).
