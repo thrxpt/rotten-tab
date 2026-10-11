@@ -1,4 +1,4 @@
-import { SCRUB_AUDIO_BASE64 } from '@/utils/scrubAudioData';
+import { SCRUB_AUDIO_BASE64 } from "@/utils/scrubAudioData";
 
 interface ExtensionSettings {
   enabled: boolean;
@@ -30,58 +30,78 @@ interface MoldPalette {
 const MOLD_PALETTES: MoldPalette[] = [
   // 0: Penicillium (Blue-Green / Turquoise citrus & bread mold)
   {
-    halo: 'rgba(28, 55, 52, 0.35)',
-    fuzz: 'rgba(195, 230, 222, 0.65)',
-    core0: 'rgba(8, 22, 20, 0.96)',
-    core1: 'rgba(22, 62, 58, 0.90)',
-    core2: 'rgba(38, 92, 85, 0.65)',
-    whisker: 'rgba(200, 235, 225, 0.75)',
-    spores: ['rgba(8, 20, 18, 0.9)', 'rgba(28, 75, 68, 0.85)', 'rgba(210, 240, 232, 0.9)'],
-    droplet: 'rgba(185, 150, 40, 0.85)',
+    halo: "rgba(28, 55, 52, 0.35)",
+    fuzz: "rgba(195, 230, 222, 0.65)",
+    core0: "rgba(8, 22, 20, 0.96)",
+    core1: "rgba(22, 62, 58, 0.90)",
+    core2: "rgba(38, 92, 85, 0.65)",
+    whisker: "rgba(200, 235, 225, 0.75)",
+    spores: [
+      "rgba(8, 20, 18, 0.9)",
+      "rgba(28, 75, 68, 0.85)",
+      "rgba(210, 240, 232, 0.9)",
+    ],
+    droplet: "rgba(185, 150, 40, 0.85)",
   },
   // 1: Aspergillus Niger (Charcoal Soot Black mold)
   {
-    halo: 'rgba(35, 30, 28, 0.4)',
-    fuzz: 'rgba(210, 212, 210, 0.65)',
-    core0: 'rgba(8, 8, 8, 0.98)',
-    core1: 'rgba(20, 22, 20, 0.92)',
-    core2: 'rgba(38, 40, 36, 0.70)',
-    whisker: 'rgba(215, 218, 215, 0.75)',
-    spores: ['rgba(6, 6, 6, 0.95)', 'rgba(28, 30, 28, 0.85)', 'rgba(225, 228, 225, 0.9)'],
-    droplet: 'rgba(150, 95, 25, 0.85)',
+    halo: "rgba(35, 30, 28, 0.4)",
+    fuzz: "rgba(210, 212, 210, 0.65)",
+    core0: "rgba(8, 8, 8, 0.98)",
+    core1: "rgba(20, 22, 20, 0.92)",
+    core2: "rgba(38, 40, 36, 0.70)",
+    whisker: "rgba(215, 218, 215, 0.75)",
+    spores: [
+      "rgba(6, 6, 6, 0.95)",
+      "rgba(28, 30, 28, 0.85)",
+      "rgba(225, 228, 225, 0.9)",
+    ],
+    droplet: "rgba(150, 95, 25, 0.85)",
   },
   // 2: Aspergillus Flavus (Mustard / Golden Ochre / Yellow mold)
   {
-    halo: 'rgba(65, 50, 18, 0.4)',
-    fuzz: 'rgba(242, 235, 195, 0.65)',
-    core0: 'rgba(28, 22, 6, 0.96)',
-    core1: 'rgba(75, 62, 18, 0.90)',
-    core2: 'rgba(115, 95, 28, 0.65)',
-    whisker: 'rgba(245, 238, 200, 0.75)',
-    spores: ['rgba(25, 18, 6, 0.9)', 'rgba(88, 72, 18, 0.85)', 'rgba(248, 240, 205, 0.9)'],
-    droplet: 'rgba(210, 160, 30, 0.88)',
+    halo: "rgba(65, 50, 18, 0.4)",
+    fuzz: "rgba(242, 235, 195, 0.65)",
+    core0: "rgba(28, 22, 6, 0.96)",
+    core1: "rgba(75, 62, 18, 0.90)",
+    core2: "rgba(115, 95, 28, 0.65)",
+    whisker: "rgba(245, 238, 200, 0.75)",
+    spores: [
+      "rgba(25, 18, 6, 0.9)",
+      "rgba(88, 72, 18, 0.85)",
+      "rgba(248, 240, 205, 0.9)",
+    ],
+    droplet: "rgba(210, 160, 30, 0.88)",
   },
   // 3: Neurospora (Salmon Pink / Coral Peach red bread mold)
   {
-    halo: 'rgba(60, 25, 25, 0.38)',
-    fuzz: 'rgba(248, 218, 212, 0.65)',
-    core0: 'rgba(30, 10, 12, 0.96)',
-    core1: 'rgba(85, 36, 38, 0.88)',
-    core2: 'rgba(125, 58, 55, 0.65)',
-    whisker: 'rgba(250, 225, 220, 0.75)',
-    spores: ['rgba(28, 10, 12, 0.9)', 'rgba(98, 42, 44, 0.85)', 'rgba(252, 225, 220, 0.9)'],
-    droplet: 'rgba(190, 85, 45, 0.85)',
+    halo: "rgba(60, 25, 25, 0.38)",
+    fuzz: "rgba(248, 218, 212, 0.65)",
+    core0: "rgba(30, 10, 12, 0.96)",
+    core1: "rgba(85, 36, 38, 0.88)",
+    core2: "rgba(125, 58, 55, 0.65)",
+    whisker: "rgba(250, 225, 220, 0.75)",
+    spores: [
+      "rgba(28, 10, 12, 0.9)",
+      "rgba(98, 42, 44, 0.85)",
+      "rgba(252, 225, 220, 0.9)",
+    ],
+    droplet: "rgba(190, 85, 45, 0.85)",
   },
   // 4: Cladosporium (Deep Olive / Forest green mildew)
   {
-    halo: 'rgba(40, 48, 25, 0.38)',
-    fuzz: 'rgba(215, 230, 212, 0.65)',
-    core0: 'rgba(10, 16, 8, 0.96)',
-    core1: 'rgba(24, 42, 20, 0.90)',
-    core2: 'rgba(48, 75, 36, 0.65)',
-    whisker: 'rgba(220, 235, 218, 0.75)',
-    spores: ['rgba(8, 14, 6, 0.9)', 'rgba(36, 62, 28, 0.85)', 'rgba(225, 238, 222, 0.9)'],
-    droplet: 'rgba(165, 120, 30, 0.85)',
+    halo: "rgba(40, 48, 25, 0.38)",
+    fuzz: "rgba(215, 230, 212, 0.65)",
+    core0: "rgba(10, 16, 8, 0.96)",
+    core1: "rgba(24, 42, 20, 0.90)",
+    core2: "rgba(48, 75, 36, 0.65)",
+    whisker: "rgba(220, 235, 218, 0.75)",
+    spores: [
+      "rgba(8, 14, 6, 0.9)",
+      "rgba(36, 62, 28, 0.85)",
+      "rgba(225, 238, 222, 0.9)",
+    ],
+    droplet: "rgba(165, 120, 30, 0.85)",
   },
 ];
 
@@ -91,7 +111,7 @@ function getPalette(index: number): MoldPalette {
   if (p) return p;
   const fallback = MOLD_PALETTES[0];
   if (fallback) return fallback;
-  throw new Error('No mold palettes configured');
+  throw new Error("No mold palettes configured");
 }
 
 interface SporeParticle {
@@ -119,11 +139,11 @@ class ScrubAudioPlayer {
     this.isDecoding = true;
 
     try {
-      if (!this.ctx && typeof AudioContext !== 'undefined') {
+      if (!this.ctx && typeof AudioContext !== "undefined") {
         this.ctx = new AudioContext();
       }
       if (!this.ctx) return null;
-      if (this.ctx.state === 'suspended') {
+      if (this.ctx.state === "suspended") {
         await this.ctx.resume();
       }
 
@@ -145,15 +165,15 @@ class ScrubAudioPlayer {
 
   async play() {
     // 1. Notify extension offscreen document (exempt from host page autoplay policy & CSP)
-    browser.runtime.sendMessage({ type: 'SCRUB_AUDIO_PLAY' }).catch(() => {});
+    browser.runtime.sendMessage({ type: "SCRUB_AUDIO_PLAY" }).catch(() => {});
 
     // 2. In-memory Web Audio local fallback
     try {
-      if (!this.ctx && typeof AudioContext !== 'undefined') {
+      if (!this.ctx && typeof AudioContext !== "undefined") {
         this.ctx = new AudioContext();
       }
       if (!this.ctx) return;
-      if (this.ctx.state === 'suspended') {
+      if (this.ctx.state === "suspended") {
         await this.ctx.resume();
       }
 
@@ -189,7 +209,7 @@ class ScrubAudioPlayer {
 
   stop() {
     // 1. Notify extension offscreen document to pause
-    browser.runtime.sendMessage({ type: 'SCRUB_AUDIO_STOP' }).catch(() => {});
+    browser.runtime.sendMessage({ type: "SCRUB_AUDIO_STOP" }).catch(() => {});
 
     // 2. Stop local audio source
     if (this.stopTimeout !== null) {
@@ -208,11 +228,11 @@ class ScrubAudioPlayer {
 }
 
 export default defineContentScript({
-  matches: ['<all_urls>'],
-  runAt: 'document_idle',
+  matches: ["<all_urls>"],
+  runAt: "document_idle",
   main() {
     // Prevent duplicate injection
-    if (document.getElementById('tab-rotting-root')) {
+    if (document.getElementById("tab-rotting-root")) {
       return;
     }
 
@@ -229,16 +249,16 @@ export default defineContentScript({
     // Check if this tab is initially inactive or has stored activity timestamp
     let lastActiveTime = Date.now();
     try {
-      const stored = sessionStorage.getItem('tab_rot_last_active');
+      const stored = sessionStorage.getItem("tab_rot_last_active");
       if (stored) {
         lastActiveTime = Number(stored);
       } else if (document.hidden || !document.hasFocus()) {
         // Tab opened or loaded in background: immediately start as hoarded/inactive!
-        lastActiveTime = Date.now() - (settings.idleThreshold * 1000);
+        lastActiveTime = Date.now() - settings.idleThreshold * 1000;
       }
     } catch {
       if (document.hidden || !document.hasFocus()) {
-        lastActiveTime = Date.now() - (settings.idleThreshold * 1000);
+        lastActiveTime = Date.now() - settings.idleThreshold * 1000;
       }
     }
     // Mouse velocity tracking for frantic scrubbing
@@ -249,13 +269,17 @@ export default defineContentScript({
     const scrubAudio = new ScrubAudioPlayer();
 
     // 1. Create Isolated Shadow DOM Container
-    const hostEl = document.createElement('div');
-    hostEl.id = 'tab-rotting-root';
-    (document.fullscreenElement || document.documentElement || document.body).appendChild(hostEl);
-    const shadow = hostEl.attachShadow({ mode: 'open' });
+    const hostEl = document.createElement("div");
+    hostEl.id = "tab-rotting-root";
+    (
+      document.fullscreenElement ||
+      document.documentElement ||
+      document.body
+    ).appendChild(hostEl);
+    const shadow = hostEl.attachShadow({ mode: "open" });
 
     // 2. Inject Styles into Shadow Root
-    const styleEl = document.createElement('style');
+    const styleEl = document.createElement("style");
     styleEl.textContent = `
       :host {
         all: initial;
@@ -409,11 +433,12 @@ export default defineContentScript({
     shadow.appendChild(styleEl);
 
     // 3. Inject Hidden SVG Distortion Filter into Light DOM and Shadow Root
-    if (!document.getElementById('mold-distortion-defs')) {
-      const svgDefsWrap = document.createElement('div');
-      svgDefsWrap.id = 'mold-distortion-defs';
-      svgDefsWrap.style.cssText = 'position: fixed; width: 0; height: 0; pointer-events: none; overflow: hidden;';
-      svgDefsWrap.setAttribute('aria-hidden', 'true');
+    if (!document.getElementById("mold-distortion-defs")) {
+      const svgDefsWrap = document.createElement("div");
+      svgDefsWrap.id = "mold-distortion-defs";
+      svgDefsWrap.style.cssText =
+        "position: fixed; width: 0; height: 0; pointer-events: none; overflow: hidden;";
+      svgDefsWrap.setAttribute("aria-hidden", "true");
       svgDefsWrap.innerHTML = `
         <svg style="position: absolute; width: 0; height: 0; pointer-events: none;" aria-hidden="true">
           <defs>
@@ -427,7 +452,7 @@ export default defineContentScript({
       (document.documentElement || document.body).appendChild(svgDefsWrap);
     }
 
-    const svgWrap = document.createElement('div');
+    const svgWrap = document.createElement("div");
     svgWrap.innerHTML = `
       <svg style="position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;" aria-hidden="true">
         <defs>
@@ -441,26 +466,26 @@ export default defineContentScript({
     shadow.appendChild(svgWrap);
 
     // 4. Inject Overlay Canvas
-    const canvas = document.createElement('canvas');
-    canvas.id = 'mold-canvas';
+    const canvas = document.createElement("canvas");
+    canvas.id = "mold-canvas";
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     shadow.appendChild(canvas);
 
-    const particleCanvas = document.createElement('canvas');
-    particleCanvas.id = 'mold-particles';
+    const particleCanvas = document.createElement("canvas");
+    particleCanvas.id = "mold-particles";
     particleCanvas.width = window.innerWidth;
     particleCanvas.height = window.innerHeight;
     shadow.appendChild(particleCanvas);
 
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const particleCtx = particleCanvas.getContext('2d');
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const particleCtx = particleCanvas.getContext("2d");
     const particles: SporeParticle[] = [];
     if (!ctx) return;
 
     // 5. Inject Center-Top HUD Notification
-    const hud = document.createElement('div');
-    hud.id = 'mold-hud';
+    const hud = document.createElement("div");
+    hud.id = "mold-hud";
     hud.innerHTML = `
       <span class="hud-icon">🍄</span>
       <span class="hud-text">Tab Rotting (0%)</span>
@@ -474,18 +499,18 @@ export default defineContentScript({
     shadow.appendChild(hud);
 
     // 6. Inject Floating Sponge Sprite
-    const spongeSprite = document.createElement('div');
-    spongeSprite.id = 'sponge-sprite';
-    const spongeImg = document.createElement('img');
-    spongeImg.src = browser.runtime.getURL('/sponge.png');
-    spongeImg.alt = 'Sponge';
+    const spongeSprite = document.createElement("div");
+    spongeSprite.id = "sponge-sprite";
+    const spongeImg = document.createElement("img");
+    spongeImg.src = browser.runtime.getURL("/sponge.webp");
+    spongeImg.alt = "Sponge";
     spongeSprite.appendChild(spongeImg);
     shadow.appendChild(spongeSprite);
 
-    const hudText = hud.querySelector('.hud-text');
-    const hudHint = hud.querySelector('.hud-hint');
-    const cleanBtn = hud.querySelector('.hud-clean-btn');
-    const cleanBtnLabel = hud.querySelector('.btn-label');
+    const hudText = hud.querySelector(".hud-text");
+    const hudHint = hud.querySelector(".hud-hint");
+    const cleanBtn = hud.querySelector(".hud-clean-btn");
+    const cleanBtnLabel = hud.querySelector(".btn-label");
 
     let isCleaningMode = false;
 
@@ -494,49 +519,54 @@ export default defineContentScript({
       isCleaningMode = active;
 
       if (isCleaningMode) {
-        hostEl.classList.add('cleaning-active');
-        document.documentElement.style.cursor = 'none';
+        hostEl.classList.add("cleaning-active");
+        document.documentElement.style.cursor = "none";
         if (document.body) {
-          document.body.style.cursor = 'none';
+          document.body.style.cursor = "none";
         }
-        spongeSprite.classList.add('active');
-        cleanBtn?.classList.add('active');
+        spongeSprite.classList.add("active");
+        cleanBtn?.classList.add("active");
         if (cleanBtnLabel instanceof HTMLElement) {
-          cleanBtnLabel.textContent = 'Exit Cleaning';
+          cleanBtnLabel.textContent = "Exit Cleaning";
         }
         if (hudHint instanceof HTMLElement) {
-          hudHint.classList.add('show');
+          hudHint.classList.add("show");
         }
       } else {
-        hostEl.classList.remove('cleaning-active');
-        document.documentElement.style.cursor = '';
+        hostEl.classList.remove("cleaning-active");
+        document.documentElement.style.cursor = "";
         if (document.body) {
-          document.body.style.cursor = '';
+          document.body.style.cursor = "";
         }
-        spongeSprite.classList.remove('active');
-        spongeSprite.classList.remove('squish');
-        cleanBtn?.classList.remove('active');
+        spongeSprite.classList.remove("active");
+        spongeSprite.classList.remove("squish");
+        cleanBtn?.classList.remove("active");
         if (cleanBtnLabel instanceof HTMLElement) {
-          cleanBtnLabel.textContent = 'Clean Mode';
+          cleanBtnLabel.textContent = "Clean Mode";
         }
         if (rotProgress <= 30 && hudHint instanceof HTMLElement) {
-          hudHint.classList.remove('show');
+          hudHint.classList.remove("show");
         }
         scrubAudio.stop();
       }
     }
 
     if (cleanBtn instanceof HTMLElement) {
-      cleanBtn.addEventListener('click', (e) => {
+      cleanBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         setCleaningMode(!isCleaningMode);
       });
     }
 
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'c' || e.key === 'C') {
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "c" || e.key === "C") {
         const target = e.target;
-        if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        if (
+          target instanceof HTMLElement &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable)
+        ) {
           return;
         }
         if (rotProgress > 0 || isCleaningMode) {
@@ -553,7 +583,9 @@ export default defineContentScript({
       for (let c = 0; c < cols; c++) {
         const nx = (c + 0.15 + Math.random() * 0.7) / cols;
         const ny = (r + 0.15 + Math.random() * 0.7) / rows;
-        const paletteIndex = (r * 3 + c * 2 + Math.floor(Math.random() * 2)) % MOLD_PALETTES.length;
+        const paletteIndex =
+          (r * 3 + c * 2 + Math.floor(Math.random() * 2)) %
+          MOLD_PALETTES.length;
         colonies.push({
           nx,
           ny,
@@ -565,16 +597,16 @@ export default defineContentScript({
       }
     }
     // Canvas Resize Preservation Buffer
-    window.addEventListener('resize', () => {
+    window.addEventListener("resize", () => {
       if (!ctx) return;
       const oldW = canvas.width;
       const oldH = canvas.height;
       if (oldW === 0 || oldH === 0) return;
 
-      const tempCanvas = document.createElement('canvas');
+      const tempCanvas = document.createElement("canvas");
       tempCanvas.width = oldW;
       tempCanvas.height = oldH;
-      const tempCtx = tempCanvas.getContext('2d');
+      const tempCtx = tempCanvas.getContext("2d");
       if (tempCtx) {
         tempCtx.drawImage(canvas, 0, 0);
       }
@@ -592,14 +624,14 @@ export default defineContentScript({
     // Helper: Update HUD UI
     function updateHud() {
       if (rotProgress <= 0) {
-        hud.classList.remove('visible');
+        hud.classList.remove("visible");
         if (hudHint instanceof HTMLElement) {
-          hudHint.classList.remove('show');
+          hudHint.classList.remove("show");
         }
         setCleaningMode(false);
         return;
       }
-      hud.classList.add('visible');
+      hud.classList.add("visible");
       const rounded = Math.round(rotProgress);
       if (hudText instanceof HTMLElement) {
         hudText.textContent = `Tab Rotting (${rounded}%)`;
@@ -607,44 +639,71 @@ export default defineContentScript({
 
       if (hudHint instanceof HTMLElement) {
         if (rotProgress > 30) {
-          hudHint.classList.add('show');
+          hudHint.classList.add("show");
         } else {
-          hudHint.classList.remove('show');
+          hudHint.classList.remove("show");
         }
       }
     }
 
     // Helper: Draw soft, velvety, organic mold spore cluster with species-specific color palette
-    function drawMoldPatch(cx: number, cy: number, radius: number, paletteIndex: number = 0, density: number = 1) {
+    function drawMoldPatch(
+      cx: number,
+      cy: number,
+      radius: number,
+      paletteIndex: number = 0,
+      density: number = 1,
+    ) {
       if (!ctx || radius <= 2) return;
       const p = getPalette(paletteIndex);
 
       // 1. Moisture stain halo
-      const gradHalo = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius * 1.35);
+      const gradHalo = ctx.createRadialGradient(
+        cx,
+        cy,
+        radius * 0.35,
+        cx,
+        cy,
+        radius * 1.35,
+      );
       gradHalo.addColorStop(0, p.halo);
-      gradHalo.addColorStop(0.65, p.halo.replace(/[\d\.]+\)$/, '0.15)'));
-      gradHalo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      gradHalo.addColorStop(0.65, p.halo.replace(/[\d\.]+\)$/, "0.15)"));
+      gradHalo.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = gradHalo;
       ctx.beginPath();
       ctx.arc(cx, cy, radius * 1.35, 0, Math.PI * 2);
       ctx.fill();
 
       // 2. Soft mycelium fuzz halo
-      const gradFuzz = ctx.createRadialGradient(cx, cy, radius * 0.35, cx, cy, radius * 1.2);
-      gradFuzz.addColorStop(0, p.fuzz.replace(/[\d\.]+\)$/, '0.35)'));
+      const gradFuzz = ctx.createRadialGradient(
+        cx,
+        cy,
+        radius * 0.35,
+        cx,
+        cy,
+        radius * 1.2,
+      );
+      gradFuzz.addColorStop(0, p.fuzz.replace(/[\d\.]+\)$/, "0.35)"));
       gradFuzz.addColorStop(0.65, p.fuzz);
-      gradFuzz.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      gradFuzz.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = gradFuzz;
       ctx.beginPath();
       ctx.arc(cx, cy, radius * 1.2, 0, Math.PI * 2);
       ctx.fill();
 
       // 3. Velvety core
-      const gradCore = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 0.9);
+      const gradCore = ctx.createRadialGradient(
+        cx,
+        cy,
+        0,
+        cx,
+        cy,
+        radius * 0.9,
+      );
       gradCore.addColorStop(0, p.core0);
       gradCore.addColorStop(0.55, p.core1);
       gradCore.addColorStop(0.85, p.core2);
-      gradCore.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      gradCore.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = gradCore;
       ctx.beginPath();
       ctx.arc(cx, cy, radius * 0.9, 0, Math.PI * 2);
@@ -694,7 +753,7 @@ export default defineContentScript({
         ctx.fill();
         ctx.beginPath();
         ctx.arc(cx + 1.3, cy - 2.7, 0.7, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = "#ffffff";
         ctx.fill();
       }
     }
@@ -711,9 +770,10 @@ export default defineContentScript({
         if (toProgress >= col.triggerProgress) {
           const denom = Math.max(1, 100 - col.triggerProgress + 15);
           const frac = Math.min(1, (toProgress - col.triggerProgress) / denom);
-          const prevFrac = fromProgress >= col.triggerProgress
-            ? Math.min(1, (fromProgress - col.triggerProgress) / denom)
-            : 0;
+          const prevFrac =
+            fromProgress >= col.triggerProgress
+              ? Math.min(1, (fromProgress - col.triggerProgress) / denom)
+              : 0;
 
           if (frac > prevFrac) {
             const cx = col.nx * w;
@@ -732,8 +792,11 @@ export default defineContentScript({
         ctx.beginPath();
         const sr = 0.6 + Math.random() * 1.8;
         ctx.arc(sx, sy, sr, 0, Math.PI * 2);
-        const pal = getPalette(Math.floor(Math.random() * MOLD_PALETTES.length));
-        const sporeColor = pal.spores[Math.floor(Math.random() * 3)] || pal.spores[0];
+        const pal = getPalette(
+          Math.floor(Math.random() * MOLD_PALETTES.length),
+        );
+        const sporeColor =
+          pal.spores[Math.floor(Math.random() * 3)] || pal.spores[0];
         ctx.fillStyle = sporeColor;
       }
     }
@@ -745,21 +808,32 @@ export default defineContentScript({
       peakRotProgress = 0;
       lastActiveTime = Date.now();
       try {
-        sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
+        sessionStorage.setItem("tab_rot_last_active", String(lastActiveTime));
       } catch {}
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
       particles.length = 0;
       if (particleCtx) {
-        particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+        particleCtx.clearRect(
+          0,
+          0,
+          particleCanvas.width,
+          particleCanvas.height,
+        );
       }
       setCleaningMode(false);
       scrubAudio.stop();
       updateHud();
     }
     // Frantic Scrubbing Execution
-    function performScrub(x: number, y: number, prevX: number, prevY: number, speed: number) {
+    function performScrub(
+      x: number,
+      y: number,
+      prevX: number,
+      prevY: number,
+      speed: number,
+    ) {
       if (!isCleaningMode || !ctx || rotProgress <= 0) return;
       const dist = Math.hypot(x - prevX, y - prevY);
       const steps = Math.max(1, Math.floor(dist / 10));
@@ -780,7 +854,7 @@ export default defineContentScript({
             const py = Math.floor(cy + oy);
             if (py < 0 || py >= canvas.height) continue;
             const a = ctx.getImageData(px, py, 1, 1).data[3];
-            if (typeof a === 'number' && a > maxAlpha) {
+            if (typeof a === "number" && a > maxAlpha) {
               maxAlpha = a;
               if (maxAlpha > 200) break;
             }
@@ -796,7 +870,7 @@ export default defineContentScript({
 
       // 2. Mold hit! Apply gradual destination-out abrasion
       ctx.save();
-      ctx.globalCompositeOperation = 'destination-out';
+      ctx.globalCompositeOperation = "destination-out";
 
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
@@ -805,11 +879,25 @@ export default defineContentScript({
 
         // Gradual multi-pass abrasion with finishing boost for faint residual mold
         const speedFactor = Math.min(1, Math.max(0, (speed - 1.6) / 2.4));
-        const finishingBoost = maxAlpha < 75 ? Math.pow(1 - maxAlpha / 75, 1.2) * 0.55 : 0;
-        const coreAlpha = Math.min(0.9, 0.22 + speedFactor * 0.14 + finishingBoost);
-        const edgeAlpha = Math.min(0.3, 0.04 + speedFactor * 0.06 + finishingBoost * 0.2);
+        const finishingBoost =
+          maxAlpha < 75 ? Math.pow(1 - maxAlpha / 75, 1.2) * 0.55 : 0;
+        const coreAlpha = Math.min(
+          0.9,
+          0.22 + speedFactor * 0.14 + finishingBoost,
+        );
+        const edgeAlpha = Math.min(
+          0.3,
+          0.04 + speedFactor * 0.06 + finishingBoost * 0.2,
+        );
 
-        const grad = ctx.createRadialGradient(cx, cy, radius * 0.25, cx, cy, radius);
+        const grad = ctx.createRadialGradient(
+          cx,
+          cy,
+          radius * 0.25,
+          cx,
+          cy,
+          radius,
+        );
         grad.addColorStop(0, `rgba(0, 0, 0, ${coreAlpha})`);
         grad.addColorStop(0.65, `rgba(0, 0, 0, ${coreAlpha * 0.65})`);
         grad.addColorStop(1, `rgba(0, 0, 0, ${edgeAlpha})`);
@@ -822,8 +910,10 @@ export default defineContentScript({
         if (particles.length < 120 && Math.random() < 0.75) {
           const pAngle = Math.random() * Math.PI * 2;
           const pSpeed = 1.2 + Math.random() * 3.4;
-          const pal = getPalette(Math.floor(Math.random() * MOLD_PALETTES.length));
-          const pColor = pal.spores[1].replace(/, [\d\.]+\)$/, ',');
+          const pal = getPalette(
+            Math.floor(Math.random() * MOLD_PALETTES.length),
+          );
+          const pColor = pal.spores[1].replace(/, [\d\.]+\)$/, ",");
           particles.push({
             x: cx + (Math.random() - 0.5) * 14,
             y: cy + (Math.random() - 0.5) * 14,
@@ -860,7 +950,7 @@ export default defineContentScript({
           for (const [px, py] of pts) {
             if (px >= 0 && px < cw && py >= 0 && py < ch) {
               const a = ctx.getImageData(px, py, 1, 1).data[3];
-              if (typeof a === 'number' && a > 1) {
+              if (typeof a === "number" && a > 1) {
                 colHasMold = true;
                 break;
               }
@@ -897,7 +987,7 @@ export default defineContentScript({
       const now = Date.now();
       const dt = Math.max(1, now - prevMouseTime);
 
-      if (e && e.type === 'mousemove') {
+      if (e && e.type === "mousemove") {
         if (isCleaningMode) {
           spongeSprite.style.left = `${e.clientX}px`;
           spongeSprite.style.top = `${e.clientY}px`;
@@ -910,10 +1000,10 @@ export default defineContentScript({
 
         // Scrubbing threshold while in Cleaning Mode
         if (isCleaningMode && speed > 1.6 && rotProgress > 0) {
-          spongeSprite.classList.add('squish');
+          spongeSprite.classList.add("squish");
           performScrub(e.clientX, e.clientY, prevMouseX, prevMouseY, speed);
         } else if (isCleaningMode) {
-          spongeSprite.classList.remove('squish');
+          spongeSprite.classList.remove("squish");
         }
 
         prevMouseX = e.clientX;
@@ -923,17 +1013,17 @@ export default defineContentScript({
 
       lastActiveTime = now;
       try {
-        sessionStorage.setItem('tab_rot_last_active', String(now));
+        sessionStorage.setItem("tab_rot_last_active", String(now));
       } catch {}
     }
 
-    ['mousemove', 'keydown', 'scroll', 'click'].forEach((event) => {
+    ["mousemove", "keydown", "scroll", "click"].forEach((event) => {
       window.addEventListener(
         event,
         (e) => {
           registerInteraction(e instanceof MouseEvent ? e : undefined);
         },
-        { passive: true }
+        { passive: true },
       );
     });
 
@@ -975,7 +1065,7 @@ export default defineContentScript({
     }, 1000);
 
     // Multi-tab lifecycle listeners
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         scrubAudio.stop();
       } else {
@@ -983,14 +1073,14 @@ export default defineContentScript({
       }
     });
 
-    window.addEventListener('focus', () => {
+    window.addEventListener("focus", () => {
       applyAccruedRot();
     });
 
-    window.addEventListener('blur', () => {
+    window.addEventListener("blur", () => {
       scrubAudio.stop();
       try {
-        sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
+        sessionStorage.setItem("tab_rot_last_active", String(lastActiveTime));
       } catch {}
     });
 
@@ -1002,7 +1092,12 @@ export default defineContentScript({
 
       // Animate flying spore debris particles
       if (particleCtx && particles.length > 0) {
-        particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+        particleCtx.clearRect(
+          0,
+          0,
+          particleCanvas.width,
+          particleCanvas.height,
+        );
         for (let i = particles.length - 1; i >= 0; i--) {
           const p = particles[i];
           if (!p) continue;
@@ -1023,7 +1118,12 @@ export default defineContentScript({
           }
         }
         if (particles.length === 0) {
-          particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+          particleCtx.clearRect(
+            0,
+            0,
+            particleCanvas.width,
+            particleCanvas.height,
+          );
         }
       }
 
@@ -1034,11 +1134,11 @@ export default defineContentScript({
 
     // Load Settings from storage
     browser.storage.local
-      .get('tabRotSettings')
+      .get("tabRotSettings")
       .then((res) => {
-        if (res && typeof res === 'object' && 'tabRotSettings' in res) {
+        if (res && typeof res === "object" && "tabRotSettings" in res) {
           const stored = res.tabRotSettings;
-          if (stored && typeof stored === 'object') {
+          if (stored && typeof stored === "object") {
             settings = { ...settings, ...stored };
           }
         }
@@ -1046,11 +1146,11 @@ export default defineContentScript({
       .catch(() => {});
 
     browser.storage.onChanged.addListener((changes, area) => {
-      if (area === 'local' && 'tabRotSettings' in changes) {
+      if (area === "local" && "tabRotSettings" in changes) {
         const change = changes.tabRotSettings;
-        if (change && typeof change === 'object' && 'newValue' in change) {
+        if (change && typeof change === "object" && "newValue" in change) {
           const updated = change.newValue;
-          if (updated && typeof updated === 'object') {
+          if (updated && typeof updated === "object") {
             settings = { ...settings, ...updated };
             if (!settings.enabled) {
               sanitizeTab();
@@ -1062,26 +1162,33 @@ export default defineContentScript({
 
     // Handle Direct Runtime Messages from Popup
     browser.runtime.onMessage.addListener((message: unknown) => {
-      if (!message || typeof message !== 'object') return;
-      if ('type' in message) {
-        if (message.type === 'ROT_NOW') {
+      if (!message || typeof message !== "object") return;
+      if ("type" in message) {
+        if (message.type === "ROT_NOW") {
           // Live Demo Action: immediately trigger 95% rot progress
           peakRotProgress = 95;
           lastActiveTime = Date.now() - (settings.idleThreshold * 1000 + 90000);
           try {
-            sessionStorage.setItem('tab_rot_last_active', String(lastActiveTime));
+            sessionStorage.setItem(
+              "tab_rot_last_active",
+              String(lastActiveTime),
+            );
           } catch {}
           applyAccruedRot();
-          return Promise.resolve({ status: 'blooming', rotProgress });
+          return Promise.resolve({ status: "blooming", rotProgress });
         }
 
-        if (message.type === 'CLEAN_MOLD') {
+        if (message.type === "CLEAN_MOLD") {
           sanitizeTab();
-          return Promise.resolve({ status: 'clean', rotProgress: 0 });
+          return Promise.resolve({ status: "clean", rotProgress: 0 });
         }
 
-        if (message.type === 'GET_STATUS') {
-          return Promise.resolve({ rotProgress, isActivelyRotting: rotProgress > 0, settings });
+        if (message.type === "GET_STATUS") {
+          return Promise.resolve({
+            rotProgress,
+            isActivelyRotting: rotProgress > 0,
+            settings,
+          });
         }
       }
     });

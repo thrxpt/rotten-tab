@@ -32,11 +32,11 @@ _Avoid_: Mold lines, fungus rays, green branches
 Autonomous circular mold cultures that germinate directly across inner page content ahead of the perimeter boundary.
 _Avoid_: Mold spots, floaters, random dots
 **Cleaning Mode**:
-An interactive operational state toggled via HUD button or keyboard shortcut 'C' that equips the sponge follower sprite and enables physical mold abrasion while isolating standard web browsing.
-_Avoid_: Auto-scrub, passive clean, always-on eraser
+An interactive operational state toggled via HUD button or keyboard shortcut 'C' that equips the sponge follower sprite and globally suppresses all native cursor states (`* { cursor: none !important; }`), ensuring the sponge sprite is never occluded by link pointers or text carets.
+_Avoid_: Auto-scrub, passive clean, always-on eraser, inherited cursor
 
 **Sponge Sprite**:
-An animated floating sprite element rendered inside the Shadow DOM from `public/sponge.png` that tracks cursor coordinates with dynamic squish and tilt physics during active scrubbing.
+An animated floating sprite element rendered inside the Shadow DOM from `public/sponge.webp` that tracks cursor coordinates with dynamic squish and tilt physics during active scrubbing.
 _Avoid_: Static cursor, OS pointer, native cursor
 
 **Scrubbing**:
