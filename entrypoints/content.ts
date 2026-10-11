@@ -651,6 +651,32 @@ export default defineContentScript({
     let isCriticalGrace = false;
     let graceCountdown = 10;
     let graceIntervalId: number | null = null;
+    let basePageTitle = document.title.replace(
+      /^(?:🍄|\☠️)\s*\[.*?\]\s*|^(?:🍄|\☠️)\s*\(.*?\)\s*/,
+      "",
+    );
+
+    function updateTabTitle() {
+      const cleanTitle = (basePageTitle || document.title).replace(
+        /^(?:🍄|\☠️)\s*\[.*?\]\s*|^(?:🍄|\☠️)\s*\(.*?\)\s*/,
+        "",
+      );
+      if (!basePageTitle) basePageTitle = cleanTitle;
+
+      if (!settings.enabled || rotProgress <= 0) {
+        document.title = basePageTitle;
+        return;
+      }
+
+      if (isCriticalGrace) {
+        document.title = `☠️ [${graceCountdown}s ROTTING TO DEATH!] ${basePageTitle}`;
+      } else if (rotProgress >= 100) {
+        document.title = `☠️ [100% ROTTEN - CLEAN NOW!] ${basePageTitle}`;
+      } else {
+        const rounded = Math.round(rotProgress);
+        document.title = `🍄 (${rounded}%) ${basePageTitle}`;
+      }
+    }
 
     function stopCriticalGrace() {
       if (!isCriticalGrace) return;
@@ -662,6 +688,7 @@ export default defineContentScript({
       hostEl.classList.remove("distress-shake");
       distressVignette.classList.remove("active");
       hud.classList.remove("critical");
+      updateTabTitle();
       updateHud();
     }
 
@@ -687,6 +714,7 @@ export default defineContentScript({
         if (hudText instanceof HTMLElement) {
           hudText.textContent = `☠️ CRITICAL: Rotting to death in ${graceCountdown}s! Scrub to save!`;
         }
+        updateTabTitle();
       }
       updateGraceHud();
 
@@ -752,6 +780,7 @@ export default defineContentScript({
 
     // Helper: Update HUD UI
     function updateHud() {
+      updateTabTitle();
       if (rotProgress <= 0) {
         hud.classList.remove("visible");
         if (hudHint instanceof HTMLElement) {

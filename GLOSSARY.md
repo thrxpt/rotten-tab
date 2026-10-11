@@ -84,3 +84,7 @@ _Avoid_: Death timer, kill clock, shutdown delay
 **Termination Safeguards**:
 Protective exemptions preventing Necrotic Purge on pinned tabs (`tab.pinned`), audible media tabs (`tab.audible`), and active form input fields to avoid catastrophic data loss.
 _Avoid_: Ignore forms, blind close, universal kill
+
+**Tab Title Distress Beacon**:
+The dynamic prefixing of `document.title` with fungal emojis, rot percentages (`🍄 (X%)`), and emergency countdowns (`☠️ [Xs ROTTING TO DEATH!]`), alerting users on external tabs to neglected hoarding and cleanly restoring natural titles upon sanitization.
+_Avoid_: Static tab title, unnotified hoarding, silent rot
