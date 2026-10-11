@@ -8,7 +8,7 @@ export default defineConfig({
     description:
       "Procedural mold and fungal spores consume inactive tabs to punish tab hoarding.",
     version: "1.0.0",
-    permissions: ["storage", "activeTab", "offscreen"],
+    permissions: ["storage", "activeTab", "offscreen", "tabs"],
     web_accessible_resources: [
       {
         resources: ["scrub.mp3", "sponge.webp"],

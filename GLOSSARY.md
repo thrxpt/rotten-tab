@@ -72,3 +72,15 @@ _Avoid_: Linear spread, uniform growth, steady crawl
 **Sanitization**:
 The restoration of a tab to 0% rot progress, triggered either by thorough scrubbing or via the extension control interface.
 _Avoid_: Reset, purge, clear canvas
+
+**Necrotic Purge**:
+The automated browser tab closure executed when Rot Progress reaches 100% and the Critical Grace Countdown expires without decontamination.
+_Avoid_: Auto-kill, force close, crash tab
+
+**Critical Grace Countdown**:
+The 10-second emergency rescue countdown initiated at 100% Rot Progress, accompanied by screen shakes and alarm HUD indicators, granting a final opportunity to scrub and save the tab.
+_Avoid_: Death timer, kill clock, shutdown delay
+
+**Termination Safeguards**:
+Protective exemptions preventing Necrotic Purge on pinned tabs (`tab.pinned`), audible media tabs (`tab.audible`), and active form input fields to avoid catastrophic data loss.
+_Avoid_: Ignore forms, blind close, universal kill

@@ -15,7 +15,7 @@ export default defineBackground(() => {
 
   setupOffscreenDocument().catch(() => {});
 
-  browser.runtime.onMessage.addListener((message: unknown) => {
+  browser.runtime.onMessage.addListener((message: unknown, sender) => {
     if (!message || typeof message !== 'object') return;
     if ('type' in message) {
       if (message.type === 'SCRUB_AUDIO_PLAY' || message.type === 'SCRUB_AUDIO_STOP') {
@@ -26,6 +26,14 @@ export default defineBackground(() => {
             }).catch(() => {});
           })
           .catch(() => {});
+      } else if (message.type === 'TERMINATE_TAB' && typeof sender.tab?.id === 'number') {
+        const tab = sender.tab;
+        const tabId = tab.id;
+        if (typeof tabId === 'number') {
+          // Termination Safeguards: Pinned or Audible tabs are protected
+          if (tab.pinned || tab.audible) return;
+          browser.tabs.remove(tabId).catch(() => {});
+        }
       }
     }
   });

@@ -5,6 +5,8 @@ interface ExtensionSettings {
   idleThreshold: number; // in seconds, default 30
   growthSpeed: number; // multiplier: 1, 5, 10
   soundEnabled: boolean;
+  autoCloseEnabled: boolean;
+  gracePeriodSeconds: number;
 }
 
 interface SurfaceColony {
@@ -241,6 +243,8 @@ export default defineContentScript({
       idleThreshold: 30,
       growthSpeed: 1,
       soundEnabled: true,
+      autoCloseEnabled: true,
+      gracePeriodSeconds: 10,
     };
 
     let rotProgress = 0; // 0% to 100%
@@ -429,6 +433,40 @@ export default defineContentScript({
       #sponge-sprite.squish {
         transform: translate(-50%, -50%) scale(0.88, 0.82) rotate(-14deg);
       }
+      #mold-hud.critical {
+        background: rgba(50, 10, 10, 0.95);
+        border-color: #ff3b30;
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.75), 0 0 24px rgba(255, 59, 48, 0.65);
+        color: #ffdad6;
+        animation: pulse-alarm 0.55s infinite alternate ease-in-out;
+      }
+      @keyframes pulse-alarm {
+        from { transform: translateX(-50%) translateY(0) scale(1); }
+        to { transform: translateX(-50%) translateY(0) scale(1.05); }
+      }
+      :host(.distress-shake) #mold-canvas,
+      :host(.distress-shake) #sponge-sprite {
+        animation: screen-shake 0.15s infinite;
+      }
+      @keyframes screen-shake {
+        0% { transform: translate(0, 0); }
+        25% { transform: translate(-3px, 2px); }
+        50% { transform: translate(3px, -2px); }
+        75% { transform: translate(-2px, -2px); }
+        100% { transform: translate(2px, 1px); }
+      }
+      #distress-vignette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2147483645;
+        background: radial-gradient(circle at center, transparent 40%, rgba(140, 15, 15, 0.65) 90%, rgba(90, 5, 5, 0.88) 100%);
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+      #distress-vignette.active {
+        opacity: 1;
+      }
     `;
     shadow.appendChild(styleEl);
 
@@ -507,6 +545,10 @@ export default defineContentScript({
     spongeSprite.appendChild(spongeImg);
     shadow.appendChild(spongeSprite);
 
+    // 7. Inject Emergency Distress Vignette
+    const distressVignette = document.createElement("div");
+    distressVignette.id = "distress-vignette";
+    shadow.appendChild(distressVignette);
     const hudText = hud.querySelector(".hud-text");
     const hudHint = hud.querySelector(".hud-hint");
     const cleanBtn = hud.querySelector(".hud-clean-btn");
@@ -574,6 +616,93 @@ export default defineContentScript({
         }
       }
     });
+    function hasActiveUnsavedInput(): boolean {
+      const inputs = document.querySelectorAll(
+        'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, [contenteditable="true"]',
+      );
+      for (const el of inputs) {
+        if (
+          el instanceof HTMLInputElement &&
+          el.value.trim().length > 0 &&
+          !el.readOnly &&
+          !el.disabled
+        ) {
+          return true;
+        }
+        if (
+          el instanceof HTMLTextAreaElement &&
+          el.value.trim().length > 0 &&
+          !el.readOnly &&
+          !el.disabled
+        ) {
+          return true;
+        }
+        if (
+          el instanceof HTMLElement &&
+          el.isContentEditable &&
+          (el.textContent?.trim().length ?? 0) > 0
+        ) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    let isCriticalGrace = false;
+    let graceCountdown = 10;
+    let graceIntervalId: number | null = null;
+
+    function stopCriticalGrace() {
+      if (!isCriticalGrace) return;
+      isCriticalGrace = false;
+      if (graceIntervalId !== null) {
+        window.clearInterval(graceIntervalId);
+        graceIntervalId = null;
+      }
+      hostEl.classList.remove("distress-shake");
+      distressVignette.classList.remove("active");
+      hud.classList.remove("critical");
+      updateHud();
+    }
+
+    function triggerCriticalGrace() {
+      if (isCriticalGrace || !settings.enabled || !settings.autoCloseEnabled)
+        return;
+
+      // Safeguards: Active form input protects tab from closure
+      if (hasActiveUnsavedInput()) {
+        if (hudText instanceof HTMLElement) {
+          hudText.textContent = "Tab 100% Rotten (Protected by form input)";
+        }
+        return;
+      }
+
+      isCriticalGrace = true;
+      graceCountdown = settings.gracePeriodSeconds || 10;
+      hostEl.classList.add("distress-shake");
+      distressVignette.classList.add("active");
+      hud.classList.add("critical");
+
+      function updateGraceHud() {
+        if (hudText instanceof HTMLElement) {
+          hudText.textContent = `☠️ CRITICAL: Rotting to death in ${graceCountdown}s! Scrub to save!`;
+        }
+      }
+      updateGraceHud();
+
+      graceIntervalId = window.setInterval(() => {
+        graceCountdown--;
+        if (graceCountdown > 0) {
+          updateGraceHud();
+        } else {
+          if (graceIntervalId !== null) {
+            window.clearInterval(graceIntervalId);
+            graceIntervalId = null;
+          }
+          browser.runtime.sendMessage({ type: "TERMINATE_TAB" }).catch(() => {});
+        }
+      }, 1000);
+    }
 
     // 7. Generate Randomized Spore Colonies across the Viewport Surface
     const colonies: SurfaceColony[] = [];
@@ -629,11 +758,12 @@ export default defineContentScript({
           hudHint.classList.remove("show");
         }
         setCleaningMode(false);
+        stopCriticalGrace();
         return;
       }
       hud.classList.add("visible");
       const rounded = Math.round(rotProgress);
-      if (hudText instanceof HTMLElement) {
+      if (!isCriticalGrace && hudText instanceof HTMLElement) {
         hudText.textContent = `Tab Rotting (${rounded}%)`;
       }
 
@@ -823,6 +953,7 @@ export default defineContentScript({
         );
       }
       setCleaningMode(false);
+      stopCriticalGrace();
       scrubAudio.stop();
       updateHud();
     }
@@ -975,6 +1106,10 @@ export default defineContentScript({
         rotProgress = Math.max(1, Math.round(ratio * peakRotProgress));
       }
 
+      if (rotProgress < 100) {
+        stopCriticalGrace();
+      }
+
       if (settings.soundEnabled) {
         scrubAudio.play();
       }
@@ -1049,6 +1184,10 @@ export default defineContentScript({
         renderMoldGrowth(fromP, rotProgress);
         lastRenderedProgress = rotProgress;
         updateHud();
+
+        if (rotProgress >= 100) {
+          triggerCriticalGrace();
+        }
       }
     }
 
@@ -1165,9 +1304,10 @@ export default defineContentScript({
       if (!message || typeof message !== "object") return;
       if ("type" in message) {
         if (message.type === "ROT_NOW") {
-          // Live Demo Action: immediately trigger 95% rot progress
-          peakRotProgress = 95;
-          lastActiveTime = Date.now() - (settings.idleThreshold * 1000 + 90000);
+          // Live Demo Action: immediately trigger 100% rot and critical grace countdown!
+          peakRotProgress = 100;
+          rotProgress = 100;
+          lastActiveTime = Date.now() - (settings.idleThreshold * 1000 + 120000);
           try {
             sessionStorage.setItem(
               "tab_rot_last_active",
@@ -1175,7 +1315,8 @@ export default defineContentScript({
             );
           } catch {}
           applyAccruedRot();
-          return Promise.resolve({ status: "blooming", rotProgress });
+          triggerCriticalGrace();
+          return Promise.resolve({ status: "blooming", rotProgress: 100 });
         }
 
         if (message.type === "CLEAN_MOLD") {

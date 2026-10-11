@@ -6,6 +6,8 @@ interface ExtensionSettings {
   idleThreshold: number; // 10 to 300 seconds
   growthSpeed: number; // 1, 5, 10
   soundEnabled: boolean;
+  autoCloseEnabled: boolean;
+  gracePeriodSeconds: number;
 }
 
 const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -13,6 +15,8 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
   idleThreshold: 30,
   growthSpeed: 1,
   soundEnabled: true,
+  autoCloseEnabled: true,
+  gracePeriodSeconds: 10,
 };
 
 function formatDuration(seconds: number): string {
@@ -242,6 +246,22 @@ export default function App() {
           >
             {settings.soundEnabled ? '🔊 Sound On' : '🔇 Muted'}
           </button>
+        </div>
+
+        {/* Auto-Close Dead Tabs Toggle */}
+        <div className="toggle-row">
+          <div>
+            <div className="label-title">☠️ Auto-Close Dead Tabs</div>
+            <div className="label-desc">Terminate tab 10s after reaching 100% rot</div>
+          </div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={settings.autoCloseEnabled}
+              onChange={(e) => updateSettings({ autoCloseEnabled: e.target.checked })}
+            />
+            <span className="slider" />
+          </label>
         </div>
       </div>
 
