@@ -147,7 +147,7 @@ export default function App() {
       {/* Header */}
       <div className="popup-header">
         <div className="title-group">
-          <h1 className="main-title">Tab Rotting Simulator</h1>
+          <h1 className="main-title">Tab Rot</h1>
           <span className="badge">Mold Edition 🍄</span>
         </div>
       </div>

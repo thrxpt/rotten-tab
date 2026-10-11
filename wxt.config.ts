@@ -4,9 +4,9 @@ import { defineConfig } from "wxt";
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
-    name: "Tab Rotting Simulator: Mold Edition",
+    name: "Tab Rot: Mold Edition",
     description:
-      "Procedural mold and fungal spores consume inactive tabs to punish tab hoarding.",
+      "Procedural mold consumes neglected browser tabs. Grab your sponge and scrub them clean before the 10s death purge!",
     version: "1.0.0",
     permissions: ["storage", "activeTab", "offscreen", "tabs"],
     web_accessible_resources: [

@@ -1,6 +1,6 @@
 {
-  "name": "rotten-tab",
-  "description": "Tab Rotting Simulator: Mold Edition - Visual punishment for tab hoarding",
+  "name": "tab-rot",
+  "description": "Tab Rot: Mold Edition - Digital fungal spores consume your hoarded tabs",
   "private": true,
   "version": "1.0.0",
   "type": "module",

@@ -1,4 +1,4 @@
-# Tab Rotting Simulator
+# Tab Rot: Mold Edition
 
 Simulates procedural fungal rot and spore growth on neglected browser tabs to visually discourage tab hoarding.
 
