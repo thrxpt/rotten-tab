@@ -31,8 +31,16 @@ _Avoid_: Mold lines, fungus rays, green branches
 **Satellite Colony**:
 Autonomous circular mold cultures that germinate directly across inner page content ahead of the perimeter boundary.
 _Avoid_: Mold spots, floaters, random dots
+**Cleaning Mode**:
+An interactive operational state toggled via HUD button or keyboard shortcut 'C' that equips the sponge follower sprite and enables physical mold abrasion while isolating standard web browsing.
+_Avoid_: Auto-scrub, passive clean, always-on eraser
+
+**Sponge Sprite**:
+An animated floating sprite element rendered inside the Shadow DOM from `public/sponge.png` that tracks cursor coordinates with dynamic squish and tilt physics during active scrubbing.
+_Avoid_: Static cursor, OS pointer, native cursor
+
 **Scrubbing**:
-The cursor interaction where high-velocity mouse movements across infested canvas coordinates progressively abrade mold and decrement rot progress.
+The cursor interaction in Cleaning Mode where high-velocity sponge movements across infested canvas coordinates progressively abrade mold and decrement rot progress.
 _Avoid_: Wiping, scratching, mouse cleaning, clicking to clean
 
 **Gradual Abrasion**:

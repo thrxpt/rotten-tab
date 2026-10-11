@@ -10,7 +10,7 @@ export default defineConfig({
     permissions: ['storage', 'activeTab', 'offscreen'],
     web_accessible_resources: [
       {
-        resources: ['scrub.mp3'],
+        resources: ['scrub.mp3', 'sponge.png'],
         matches: ['<all_urls>'],
       },
     ],

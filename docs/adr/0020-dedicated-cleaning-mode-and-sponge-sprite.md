@@ -1,0 +1,3 @@
+# Dedicated Cleaning Mode and Animated Sponge Sprite
+
+Always-on frantic scrubbing caused accidental mold erasure and audio playback during ordinary fast pointer movements while browsing. We decided to separate browsing from mold sanitization by introducing a dedicated Cleaning Mode toggled via an interactive HUD button or 'C' keyboard shortcut. Inside this mode, the native cursor transforms into an animated floating sponge follower sprite (`public/sponge.png`) rendered in the Shadow DOM with dynamic squish physics, gating all scrubbing abrasion and automatically exiting upon reaching 0% clean.

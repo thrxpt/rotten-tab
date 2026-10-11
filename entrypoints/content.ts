@@ -260,6 +260,10 @@ export default defineContentScript({
       :host {
         all: initial;
       }
+      :host(.cleaning-active),
+      :host(.cleaning-active) * {
+        cursor: none !important;
+      }
       #mold-canvas {
         position: fixed;
         top: 0;
@@ -332,6 +336,75 @@ export default defineContentScript({
         opacity: 0.9;
         max-width: 220px;
       }
+      .hud-clean-btn {
+        pointer-events: auto;
+        cursor: pointer;
+        background: rgba(45, 75, 40, 0.55);
+        border: 1px solid rgba(125, 185, 105, 0.45);
+        color: #e5f0dc;
+        border-radius: 9999px;
+        padding: 4px 10px 4px 8px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-left: 6px;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        user-select: none;
+        outline: none;
+      }
+      .hud-clean-btn:hover {
+        background: rgba(65, 115, 55, 0.85);
+        border-color: #9cd65f;
+        transform: scale(1.04);
+      }
+      .hud-clean-btn.active {
+        background: #3e7b30;
+        border-color: #a4e080;
+        box-shadow: 0 0 12px rgba(114, 191, 92, 0.6);
+        color: #ffffff;
+      }
+      .btn-kbd {
+        font-family: inherit;
+        font-size: 9px;
+        font-weight: 700;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 4px;
+        padding: 1px 4px;
+        line-height: 1;
+        color: #d7e8d0;
+      }
+      #sponge-sprite {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 72px;
+        height: 72px;
+        pointer-events: none;
+        z-index: 2147483647;
+        transform: translate(-50%, -50%) rotate(0deg);
+        display: none;
+        transition: transform 0.08s ease-out;
+        filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
+        will-change: transform, left, top;
+      }
+      #sponge-sprite.active {
+        display: block;
+      }
+      #sponge-sprite img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        user-select: none;
+        pointer-events: none;
+      }
+      #sponge-sprite.squish {
+        transform: translate(-50%, -50%) scale(0.88, 0.82) rotate(-14deg);
+      }
     `;
     shadow.appendChild(styleEl);
 
@@ -391,14 +464,88 @@ export default defineContentScript({
     hud.innerHTML = `
       <span class="hud-icon">🍄</span>
       <span class="hud-text">Tab Rotting (0%)</span>
-      <span class="hud-hint">• Shake mouse fast to scrub</span>
+      <button type="button" class="hud-clean-btn" id="hud-clean-toggle" title="Toggle Sponge Cleaning Mode (Press C)">
+        <span>🧽</span>
+        <span class="btn-label">Clean Mode</span>
+        <kbd class="btn-kbd">C</kbd>
+      </button>
+      <span class="hud-hint">• Move sponge fast to scrub</span>
     `;
     shadow.appendChild(hud);
 
+    // 6. Inject Floating Sponge Sprite
+    const spongeSprite = document.createElement('div');
+    spongeSprite.id = 'sponge-sprite';
+    const spongeImg = document.createElement('img');
+    spongeImg.src = browser.runtime.getURL('/sponge.png');
+    spongeImg.alt = 'Sponge';
+    spongeSprite.appendChild(spongeImg);
+    shadow.appendChild(spongeSprite);
+
     const hudText = hud.querySelector('.hud-text');
     const hudHint = hud.querySelector('.hud-hint');
+    const cleanBtn = hud.querySelector('.hud-clean-btn');
+    const cleanBtnLabel = hud.querySelector('.btn-label');
 
-    // 6. Generate Randomized Spore Colonies across the Viewport Surface
+    let isCleaningMode = false;
+
+    function setCleaningMode(active: boolean) {
+      if (isCleaningMode === active) return;
+      isCleaningMode = active;
+
+      if (isCleaningMode) {
+        hostEl.classList.add('cleaning-active');
+        document.documentElement.style.cursor = 'none';
+        if (document.body) {
+          document.body.style.cursor = 'none';
+        }
+        spongeSprite.classList.add('active');
+        cleanBtn?.classList.add('active');
+        if (cleanBtnLabel instanceof HTMLElement) {
+          cleanBtnLabel.textContent = 'Exit Cleaning';
+        }
+        if (hudHint instanceof HTMLElement) {
+          hudHint.classList.add('show');
+        }
+      } else {
+        hostEl.classList.remove('cleaning-active');
+        document.documentElement.style.cursor = '';
+        if (document.body) {
+          document.body.style.cursor = '';
+        }
+        spongeSprite.classList.remove('active');
+        spongeSprite.classList.remove('squish');
+        cleanBtn?.classList.remove('active');
+        if (cleanBtnLabel instanceof HTMLElement) {
+          cleanBtnLabel.textContent = 'Clean Mode';
+        }
+        if (rotProgress <= 30 && hudHint instanceof HTMLElement) {
+          hudHint.classList.remove('show');
+        }
+        scrubAudio.stop();
+      }
+    }
+
+    if (cleanBtn instanceof HTMLElement) {
+      cleanBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setCleaningMode(!isCleaningMode);
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'c' || e.key === 'C') {
+        const target = e.target;
+        if (target instanceof HTMLElement && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        if (rotProgress > 0 || isCleaningMode) {
+          setCleaningMode(!isCleaningMode);
+        }
+      }
+    });
+
+    // 7. Generate Randomized Spore Colonies across the Viewport Surface
     const colonies: SurfaceColony[] = [];
     const cols = 8;
     const rows = 7;
@@ -449,6 +596,7 @@ export default defineContentScript({
         if (hudHint instanceof HTMLElement) {
           hudHint.classList.remove('show');
         }
+        setCleaningMode(false);
         return;
       }
       hud.classList.add('visible');
@@ -606,13 +754,13 @@ export default defineContentScript({
       if (particleCtx) {
         particleCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
       }
+      setCleaningMode(false);
       scrubAudio.stop();
       updateHud();
     }
     // Frantic Scrubbing Execution
     function performScrub(x: number, y: number, prevX: number, prevY: number, speed: number) {
-      if (!ctx || rotProgress <= 0) return;
-
+      if (!isCleaningMode || !ctx || rotProgress <= 0) return;
       const dist = Math.hypot(x - prevX, y - prevY);
       const steps = Math.max(1, Math.floor(dist / 10));
       const radius = 42 + Math.min(25, speed * 8);
@@ -729,6 +877,7 @@ export default defineContentScript({
         rotProgress = 0;
         lastRenderedProgress = 0;
         peakRotProgress = 0;
+        setCleaningMode(false);
         scrubAudio.stop();
       } else if (totalGerminated > 0) {
         // True proportion: when 90% of colonies are gone, rotProgress drops by 90%!
@@ -749,14 +898,22 @@ export default defineContentScript({
       const dt = Math.max(1, now - prevMouseTime);
 
       if (e && e.type === 'mousemove') {
+        if (isCleaningMode) {
+          spongeSprite.style.left = `${e.clientX}px`;
+          spongeSprite.style.top = `${e.clientY}px`;
+        }
+
         const dx = e.clientX - prevMouseX;
         const dy = e.clientY - prevMouseY;
         const distance = Math.hypot(dx, dy);
         const speed = distance / dt; // pixels per ms
 
-        // Frantic scrubbing threshold: rapid shaking (> 1.6 px/ms)
-        if (speed > 1.6 && rotProgress > 0) {
+        // Scrubbing threshold while in Cleaning Mode
+        if (isCleaningMode && speed > 1.6 && rotProgress > 0) {
+          spongeSprite.classList.add('squish');
           performScrub(e.clientX, e.clientY, prevMouseX, prevMouseY, speed);
+        } else if (isCleaningMode) {
+          spongeSprite.classList.remove('squish');
         }
 
         prevMouseX = e.clientX;
