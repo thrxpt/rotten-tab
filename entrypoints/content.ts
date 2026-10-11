@@ -1329,38 +1329,47 @@ export default defineContentScript({
     });
 
     // Handle Direct Runtime Messages from Popup
-    browser.runtime.onMessage.addListener((message: unknown) => {
-      if (!message || typeof message !== "object") return;
-      if ("type" in message) {
-        if (message.type === "ROT_NOW") {
-          // Live Demo Action: immediately trigger 100% rot and critical grace countdown!
-          peakRotProgress = 100;
-          rotProgress = 100;
-          lastActiveTime = Date.now() - (settings.idleThreshold * 1000 + 120000);
-          try {
-            sessionStorage.setItem(
-              "tab_rot_last_active",
-              String(lastActiveTime),
-            );
-          } catch {}
-          applyAccruedRot();
-          triggerCriticalGrace();
-          return Promise.resolve({ status: "blooming", rotProgress: 100 });
-        }
+    browser.runtime.onMessage.addListener(
+      (message: unknown, _sender, sendResponse) => {
+        if (!message || typeof message !== "object") return;
+        if ("type" in message) {
+          if (message.type === "ROT_NOW") {
+            // Live Demo Action: immediately trigger 95% rot and draw mold across canvas!
+            const target = 95;
+            const fromP = lastRenderedProgress;
+            rotProgress = target;
+            peakRotProgress = Math.max(peakRotProgress, target);
+            lastActiveTime =
+              Date.now() - (settings.idleThreshold * 1000 + 80000);
+            try {
+              sessionStorage.setItem(
+                "tab_rot_last_active",
+                String(lastActiveTime),
+              );
+            } catch {}
+            renderMoldGrowth(fromP, rotProgress);
+            lastRenderedProgress = rotProgress;
+            updateHud();
+            sendResponse({ status: "blooming", rotProgress: 95 });
+            return true;
+          }
 
-        if (message.type === "CLEAN_MOLD") {
-          sanitizeTab();
-          return Promise.resolve({ status: "clean", rotProgress: 0 });
-        }
+          if (message.type === "CLEAN_MOLD") {
+            sanitizeTab();
+            sendResponse({ status: "clean", rotProgress: 0 });
+            return true;
+          }
 
-        if (message.type === "GET_STATUS") {
-          return Promise.resolve({
-            rotProgress,
-            isActivelyRotting: rotProgress > 0,
-            settings,
-          });
+          if (message.type === "GET_STATUS") {
+            sendResponse({
+              rotProgress,
+              isActivelyRotting: rotProgress > 0,
+              settings,
+            });
+            return true;
+          }
         }
-      }
-    });
+      },
+    );
   },
 });
