@@ -93,6 +93,10 @@ _Avoid_: Static tab title, unnotified hoarding, silent rot
 The capture-phase interaction barrier that samples pixel alpha at cursor click coordinates, physically blocking clicks, text selections, and button activations on elements covered by mold until scrubbed clean.
 _Avoid_: Ghost clicks, click-through mold, pass-through fungus
 
+**Persistent Mold State**:
+The tab-scoped serialization of active mold canvas bitmaps and scrubbed abrasion voids in `sessionStorage`, guaranteeing that reloaded or navigated tabs preserve unscrubbed mold and partially cleaned holes.
+_Avoid_: State reset on reload, wiped scrub holes, ephemeral canvas
+
 **Release Workflow**:
 The automated GitHub Actions continuous delivery pipeline that validates TypeScript integrity, builds dual-browser distribution packages (Chrome MV3 and Firefox), and publishes GitHub Releases upon version tag push (`v*`) or manual dispatch.
 _Avoid_: Manual build script, local zip distribution, untracked binary drop

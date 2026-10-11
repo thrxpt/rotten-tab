@@ -18,6 +18,102 @@ interface SurfaceColony {
   paletteIndex: number;
 }
 
+interface PersistedMoldState {
+  v: 1;
+  origin: string;
+  url: string;
+  colonies: SurfaceColony[];
+  rotProgress: number;
+  peakRotProgress: number;
+  lastRenderedProgress: number;
+  lastActiveTime: number;
+  vw: number;
+  vh: number;
+  savedAt: number;
+  canvasDataURL?: string;
+}
+
+const MOLD_STATE_KEY = "tab_rot_mold_state_v1";
+
+function isValidPersistedColony(c: unknown): c is SurfaceColony {
+  if (!c || typeof c !== "object") return false;
+  const o = c as Record<string, unknown>;
+  return (
+    typeof o["nx"] === "number" &&
+    typeof o["ny"] === "number" &&
+    typeof o["triggerProgress"] === "number" &&
+    typeof o["maxRadius"] === "number" &&
+    typeof o["seed"] === "number" &&
+    typeof o["paletteIndex"] === "number" &&
+    Number.isFinite(o["nx"] as number) &&
+    Number.isFinite(o["ny"] as number)
+  );
+}
+
+function loadPersistedMoldState(): PersistedMoldState | null {
+  try {
+    const raw = sessionStorage.getItem(MOLD_STATE_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    const o = parsed as Record<string, unknown>;
+    if (o["v"] !== 1) return null;
+    // Origin scope: navigating within the same site (different path/query) reuses the same mold
+    const currentOrigin = location.origin;
+    if (typeof o["origin"] === "string") {
+      if (o["origin"] !== currentOrigin) return null;
+    } else if (typeof o["url"] === "string") {
+      // Migration: legacy state stored as full href -> compare by origin only
+      try {
+        if (new URL(o["url"] as string).origin !== currentOrigin) return null;
+      } catch {
+        return null;
+      }
+    } else {
+      return null;
+    }
+    if (!Array.isArray(o["colonies"]) || o["colonies"].length === 0) return null;
+    if (!o["colonies"].every(isValidPersistedColony)) return null;
+    const num = (v: unknown): number | null =>
+      typeof v === "number" && Number.isFinite(v) ? v : null;
+    const rotProgress = num(o["rotProgress"]);
+    const peakRotProgress = num(o["peakRotProgress"]);
+    const lastRenderedProgress = num(o["lastRenderedProgress"]);
+    const lastActiveTime = num(o["lastActiveTime"]);
+    if (
+      rotProgress === null ||
+      peakRotProgress === null ||
+      lastRenderedProgress === null ||
+      lastActiveTime === null
+    ) {
+      return null;
+    }
+    // Fully cleaned (0%): nothing to restore - start clean
+    if (rotProgress <= 0) return null;
+    const canvasDataURL =
+      typeof o["canvasDataURL"] === "string" &&
+      o["canvasDataURL"].startsWith("data:image/")
+        ? (o["canvasDataURL"] as string)
+        : undefined;
+    return {
+      v: 1,
+      origin: typeof o["origin"] === "string" ? (o["origin"] as string) : location.origin,
+      url: typeof o["url"] === "string" ? (o["url"] as string) : location.href,
+      colonies: o["colonies"] as SurfaceColony[],
+      rotProgress,
+      peakRotProgress,
+      lastRenderedProgress,
+      lastActiveTime,
+      vw: num(o["vw"]) ?? window.innerWidth,
+      vh: num(o["vh"]) ?? window.innerHeight,
+      savedAt: num(o["savedAt"]) ?? Date.now(),
+      canvasDataURL,
+    };
+  } catch {
+    return null;
+  }
+}
+
 interface MoldPalette {
   halo: string;
   fuzz: string;
@@ -250,19 +346,28 @@ export default defineContentScript({
     let rotProgress = 0; // 0% to 100%
     let lastRenderedProgress = 0;
     let peakRotProgress = 0;
+    // Mold persistence: if partially scrubbed (rot > 0), restore the previous layout + progress
+    const restoredMoldState = loadPersistedMoldState();
     // Check if this tab is initially inactive or has stored activity timestamp
     let lastActiveTime = Date.now();
-    try {
-      const stored = sessionStorage.getItem("tab_rot_last_active");
-      if (stored) {
-        lastActiveTime = Number(stored);
-      } else if (document.hidden || !document.hasFocus()) {
-        // Tab opened or loaded in background: immediately start as hoarded/inactive!
-        lastActiveTime = Date.now() - settings.idleThreshold * 1000;
-      }
-    } catch {
-      if (document.hidden || !document.hasFocus()) {
-        lastActiveTime = Date.now() - settings.idleThreshold * 1000;
+    if (restoredMoldState) {
+      rotProgress = restoredMoldState.rotProgress;
+      lastRenderedProgress = restoredMoldState.lastRenderedProgress;
+      peakRotProgress = restoredMoldState.peakRotProgress;
+      lastActiveTime = restoredMoldState.lastActiveTime;
+    } else {
+      try {
+        const stored = sessionStorage.getItem("tab_rot_last_active");
+        if (stored) {
+          lastActiveTime = Number(stored);
+        } else if (document.hidden || !document.hasFocus()) {
+          // Tab opened or loaded in background: immediately start as hoarded/inactive!
+          lastActiveTime = Date.now() - settings.idleThreshold * 1000;
+        }
+      } catch {
+        if (document.hidden || !document.hasFocus()) {
+          lastActiveTime = Date.now() - settings.idleThreshold * 1000;
+        }
       }
     }
     // Mouse velocity tracking for frantic scrubbing
@@ -733,24 +838,155 @@ export default defineContentScript({
     }
 
     // 7. Generate Randomized Spore Colonies across the Viewport Surface
-    const colonies: SurfaceColony[] = [];
-    const cols = 8;
-    const rows = 7;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const nx = (c + 0.15 + Math.random() * 0.7) / cols;
-        const ny = (r + 0.15 + Math.random() * 0.7) / rows;
-        const paletteIndex =
-          (r * 3 + c * 2 + Math.floor(Math.random() * 2)) %
-          MOLD_PALETTES.length;
-        colonies.push({
-          nx,
-          ny,
-          triggerProgress: 4 + Math.random() * 70,
-          maxRadius: 52 + Math.random() * 68,
-          seed: Math.random() * 100,
-          paletteIndex,
-        });
+    // Reuse the stored layout when a partially scrubbed state exists - do not re-randomize
+    const colonies: SurfaceColony[] =
+      restoredMoldState?.colonies.map((c) => ({ ...c })) ?? [];
+    if (colonies.length === 0) {
+      const cols = 8;
+      const rows = 7;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const nx = (c + 0.15 + Math.random() * 0.7) / cols;
+          const ny = (r + 0.15 + Math.random() * 0.7) / rows;
+          const paletteIndex =
+            (r * 3 + c * 2 + Math.floor(Math.random() * 2)) %
+            MOLD_PALETTES.length;
+          colonies.push({
+            nx,
+            ny,
+            triggerProgress: 4 + Math.random() * 70,
+            maxRadius: 52 + Math.random() * 68,
+            seed: Math.random() * 100,
+            paletteIndex,
+          });
+        }
+      }
+    }
+
+    // 7.1 Mold persistence helpers (sessionStorage, per-tab scope)
+    // Stores: colonies layout + progress + canvas snapshot (preserves scrub marks)
+    // Fully cleaned (0%) clears the stored state for a fresh start
+    let persistTimer: number | null = null;
+    let isRestoringCanvas = false;
+
+    function clearPersistedMoldState() {
+      try {
+        sessionStorage.removeItem(MOLD_STATE_KEY);
+      } catch {}
+    }
+
+    function persistMoldStateImmediate() {
+      // Skip saving while the snapshot is still restoring (canvas is empty) - retry after restore
+      if (isRestoringCanvas) {
+        schedulePersistMoldState(1500);
+        return;
+      }
+      try {
+        if (persistTimer !== null) {
+          window.clearTimeout(persistTimer);
+          persistTimer = null;
+        }
+      } catch {}
+      try {
+        if (rotProgress <= 0 || colonies.length === 0) {
+          clearPersistedMoldState();
+          try {
+            sessionStorage.setItem(
+              "tab_rot_last_active",
+              String(lastActiveTime),
+            );
+          } catch {}
+          return;
+        }
+        let canvasDataURL: string | undefined;
+        try {
+          if (ctx && canvas.width > 0 && canvas.height > 0) {
+            const url = canvas.toDataURL("image/png");
+            // Guard quota (~5MB): drop the image and keep metadata only when the snapshot exceeds ~3.5MB
+            if (url.length < 3_500_000) {
+              canvasDataURL = url;
+            }
+          }
+        } catch {
+          canvasDataURL = undefined;
+        }
+        const state: PersistedMoldState = {
+          v: 1,
+          origin: location.origin,
+          url: location.href,
+          colonies,
+          rotProgress,
+          peakRotProgress,
+          lastRenderedProgress,
+          lastActiveTime,
+          vw: window.innerWidth,
+          vh: window.innerHeight,
+          savedAt: Date.now(),
+          canvasDataURL,
+        };
+        try {
+          sessionStorage.setItem(MOLD_STATE_KEY, JSON.stringify(state));
+        } catch {
+          // Quota exceeded -> retry without the image (layout + progress only)
+          try {
+            const fallback: PersistedMoldState = { ...state };
+            delete fallback.canvasDataURL;
+            sessionStorage.setItem(MOLD_STATE_KEY, JSON.stringify(fallback));
+          } catch {}
+        }
+        try {
+          sessionStorage.setItem("tab_rot_last_active", String(lastActiveTime));
+        } catch {}
+      } catch {}
+    }
+
+    function schedulePersistMoldState(delay = 1200) {
+      try {
+        if (persistTimer !== null) {
+          window.clearTimeout(persistTimer);
+        }
+        persistTimer = window.setTimeout(() => {
+          persistTimer = null;
+          persistMoldStateImmediate();
+        }, delay);
+      } catch {}
+    }
+
+    function restorePersistedCanvasImage(): boolean {
+      const dataURL = restoredMoldState?.canvasDataURL;
+      if (!dataURL || !ctx) return false;
+      try {
+        isRestoringCanvas = true;
+        const img = new Image();
+        img.onload = () => {
+          try {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Stretch to the current viewport (handles resize across reload)
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          } catch {}
+          isRestoringCanvas = false;
+          updateHud();
+          // Resume rot accrual only after the previous scrub marks are restored
+          applyAccruedRot();
+          schedulePersistMoldState(1500);
+        };
+        img.onerror = () => {
+          isRestoringCanvas = false;
+          // Fallback: repaint from the stored progress
+          try {
+            if (rotProgress > 0) {
+              renderMoldGrowth(0, rotProgress);
+              lastRenderedProgress = rotProgress;
+              updateHud();
+            }
+          } catch {}
+          applyAccruedRot();
+        };
+        img.src = dataURL;
+        return true;
+      } catch {
+        isRestoringCanvas = false;
+        return false;
       }
     }
     // Canvas Resize Preservation Buffer
@@ -776,6 +1012,7 @@ export default defineContentScript({
       if (tempCtx) {
         ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
       }
+      schedulePersistMoldState(800);
     });
 
     // Helper: Update HUD UI
@@ -969,6 +1206,7 @@ export default defineContentScript({
       try {
         sessionStorage.setItem("tab_rot_last_active", String(lastActiveTime));
       } catch {}
+      clearPersistedMoldState();
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
@@ -1129,6 +1367,7 @@ export default defineContentScript({
         peakRotProgress = 0;
         setCleaningMode(false);
         scrubAudio.stop();
+        clearPersistedMoldState();
       } else if (totalGerminated > 0) {
         // True proportion: when 90% of colonies are gone, rotProgress drops by 90%!
         const ratio = activeLeft / totalGerminated;
@@ -1144,6 +1383,8 @@ export default defineContentScript({
       }
 
       updateHud();
+      // Persist the current scrub level as-is (debounced snapshot)
+      schedulePersistMoldState(900);
     }
 
     // User Interaction Listeners
@@ -1179,6 +1420,11 @@ export default defineContentScript({
       try {
         sessionStorage.setItem("tab_rot_last_active", String(now));
       } catch {}
+      // Persist the latest activity timestamp too (debounced to avoid mousemove spam)
+      // Existing mold keeps its scrub marks across reload
+      if (rotProgress > 0) {
+        schedulePersistMoldState(2000);
+      }
     }
 
     // Physical Mold Occlusion: intercept clicks and pointerdowns over active mold
@@ -1254,6 +1500,8 @@ export default defineContentScript({
     // Apply accrued rot immediately onto the canvas
     function applyAccruedRot() {
       if (!settings.enabled) return;
+      // Wait for snapshot restore to finish to avoid painting over scrub marks
+      if (isRestoringCanvas) return;
       const now = Date.now();
       const target = calculateAccruedRot(now - lastActiveTime);
       if (target > rotProgress) {
@@ -1263,6 +1511,7 @@ export default defineContentScript({
         renderMoldGrowth(fromP, rotProgress);
         lastRenderedProgress = rotProgress;
         updateHud();
+        schedulePersistMoldState(1500);
 
         if (rotProgress >= 100) {
           triggerCriticalGrace();
@@ -1270,8 +1519,30 @@ export default defineContentScript({
       }
     }
 
-    // Immediately check and apply rot on script start (e.g. background tab or restored session)
-    applyAccruedRot();
+    // Startup restore: recover previous marks first when partially scrubbed, then accrue
+    // - With snapshot -> repaint the stored image (keeps scrub marks), then applyAccruedRot in onload
+    // - Without snapshot but with layout+progress -> repaint from the stored progress
+    // - With nothing stored -> accrue normally
+    const hadRestoredSnapshot = restorePersistedCanvasImage();
+    if (!hadRestoredSnapshot) {
+      if (restoredMoldState && rotProgress > 0) {
+        try {
+          renderMoldGrowth(0, rotProgress);
+          lastRenderedProgress = rotProgress;
+          updateHud();
+        } catch {}
+      }
+      // Immediately check and apply rot on script start (e.g. background tab or restored session)
+      applyAccruedRot();
+    } else if (restoredMoldState) {
+      // Paint the HUD immediately while the image loads to avoid a blank frame
+      try {
+        updateHud();
+      } catch {}
+    } else {
+      // Immediately check and apply rot on script start (e.g. background tab or restored session)
+      applyAccruedRot();
+    }
 
     // 1-second background interval: continues accumulating & rendering rot in background tabs!
     window.setInterval(() => {
@@ -1286,6 +1557,8 @@ export default defineContentScript({
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         scrubAudio.stop();
+        // Tab hidden = persist scrub marks immediately against discard/reload
+        persistMoldStateImmediate();
       } else {
         applyAccruedRot();
       }
@@ -1300,6 +1573,15 @@ export default defineContentScript({
       try {
         sessionStorage.setItem("tab_rot_last_active", String(lastActiveTime));
       } catch {}
+      persistMoldStateImmediate();
+    });
+
+    // Preserve scrub marks across reload / navigate / tab close
+    window.addEventListener("pagehide", () => {
+      persistMoldStateImmediate();
+    });
+    window.addEventListener("beforeunload", () => {
+      persistMoldStateImmediate();
     });
 
     // Main Simulation Loop via requestAnimationFrame (runs smoothly when tab is visible)
@@ -1400,6 +1682,7 @@ export default defineContentScript({
             renderMoldGrowth(fromP, rotProgress);
             lastRenderedProgress = rotProgress;
             updateHud();
+            persistMoldStateImmediate();
             sendResponse({ status: "blooming", rotProgress: 95 });
             return true;
           }
