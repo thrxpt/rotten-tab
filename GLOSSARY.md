@@ -88,3 +88,7 @@ _Avoid_: Ignore forms, blind close, universal kill
 **Tab Title Distress Beacon**:
 The dynamic prefixing of `document.title` with fungal emojis, rot percentages (`🍄 (X%)`), and emergency countdowns (`☠️ [Xs ROTTING TO DEATH!]`), alerting users on external tabs to neglected hoarding and cleanly restoring natural titles upon sanitization.
 _Avoid_: Static tab title, unnotified hoarding, silent rot
+
+**Release Workflow**:
+The automated GitHub Actions continuous delivery pipeline that validates TypeScript integrity, builds dual-browser distribution packages (Chrome MV3 and Firefox), and publishes GitHub Releases upon version tag push (`v*`) or manual dispatch.
+_Avoid_: Manual build script, local zip distribution, untracked binary drop
