@@ -1181,7 +1181,58 @@ export default defineContentScript({
       } catch {}
     }
 
-    ["mousemove", "keydown", "scroll", "click"].forEach((event) => {
+    // Physical Mold Occlusion: intercept clicks and pointerdowns over active mold
+    const interceptEvents = ['pointerdown', 'mousedown', 'click'];
+    interceptEvents.forEach((evtName) => {
+      window.addEventListener(
+        evtName,
+        (e) => {
+          if (!settings.enabled || rotProgress <= 0 || !ctx) return;
+
+          // Never block interactions with the extension's HUD or controls
+          const target = e.target;
+          if (target instanceof Node && hostEl.contains(target)) {
+            return;
+          }
+
+          if (e instanceof MouseEvent) {
+            const x = Math.floor(e.clientX);
+            const y = Math.floor(e.clientY);
+            if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+              const alpha = ctx.getImageData(x, y, 1, 1).data[3];
+              if (typeof alpha === 'number' && alpha > 15) {
+                // Physical mold obstruction! Paralyze interaction through mold
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                // Spawn tactile spore puff particles when clicking mold
+                if (evtName === 'click' && particles.length < 120) {
+                  const pal = getPalette(Math.floor(Math.random() * MOLD_PALETTES.length));
+                  const pColor = pal.spores[1].replace(/, [\d\.]+\)$/, ',');
+                  for (let p = 0; p < 4; p++) {
+                    const pAngle = Math.random() * Math.PI * 2;
+                    const pSpeed = 1.0 + Math.random() * 2.5;
+                    particles.push({
+                      x: x + (Math.random() - 0.5) * 10,
+                      y: y + (Math.random() - 0.5) * 10,
+                      vx: Math.cos(pAngle) * pSpeed,
+                      vy: Math.sin(pAngle) * pSpeed - 0.5,
+                      radius: 0.8 + Math.random() * 1.5,
+                      color: pColor,
+                      life: 0.8,
+                    });
+                  }
+                }
+              }
+            }
+          }
+        },
+        { capture: true }
+      );
+    });
+
+    ['mousemove', 'keydown', 'scroll', 'click'].forEach((event) => {
       window.addEventListener(
         event,
         (e) => {
@@ -1190,7 +1241,6 @@ export default defineContentScript({
         { passive: true },
       );
     });
-
     // Calculation: determine accrued rot for any inactive duration
     function calculateAccruedRot(inactiveMs: number): number {
       const inactiveSeconds = inactiveMs / 1000;

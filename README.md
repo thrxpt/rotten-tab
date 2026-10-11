@@ -10,7 +10,7 @@ Digital mold simulator that visually punishes tab hoarding. Neglected browser ta
 - **Coverage Sync**: The HUD percentage strictly reflects remaining on-screen mold, reaching 0% only when the canvas is clean.
 - **Necrotic Purge**: 100% rot initiates a 10-second emergency countdown with screen shake and distress vignette before closing the tab.
 - **Safeguards**: Pinned tabs, audible media tabs, and active form inputs are protected from closure.
-
+- **Physical Occlusion**: Mold physically intercepts clicks and pointer events, paralyzing buttons and links beneath fungal colonies until scrubbed clean.
 ## Controls
 
 | Key / Action | Function |
